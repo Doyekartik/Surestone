@@ -92,13 +92,17 @@ function initHeroWordCycle(){const windowEl=$('.hero-word-window'),wordEl=$('#he
 
 /* ---- Brochure & floor plans: open only after name + mobile (saved as a lead in the CRM) ---- */
 const unlockState={home:null,what:'brochure'};
-function unlockCache(id){try{const v=JSON.parse(localStorage.getItem('surestone:files:'+id)||'null');return v&&v.at>Date.now()-864e5?v:null}catch{return null}}
-function unlockSave(id,files){try{localStorage.setItem('surestone:files:'+id,JSON.stringify({...files,at:Date.now()}));localStorage.removeItem('surestone:asked:'+id)}catch{}}
+/* The browser only remembers WHO asked; the CRM decides every time whether the files open (first call done). */
+function unlockCache(id){try{const v=JSON.parse(localStorage.getItem('surestone:open:'+id)||'null');return v&&v.at>Date.now()-864e5?v:null}catch{return null}}
+try{Object.keys(localStorage).filter(k=>k.startsWith('surestone:files:')).forEach(k=>localStorage.removeItem(k))}catch{}
+function unlockSave(id){try{localStorage.setItem('surestone:open:'+id,JSON.stringify({at:Date.now()}))}catch{}}
+function unlockForget(id){try{localStorage.removeItem('surestone:open:'+id)}catch{}}
 function askedFor(id){try{return JSON.parse(localStorage.getItem('surestone:asked:'+id)||'null')}catch{return null}}
-function setAsked(id,v){try{localStorage.setItem('surestone:asked:'+id,JSON.stringify(v))}catch{}}
+function setAsked(id,v){try{localStorage.setItem('surestone:asked:'+id,JSON.stringify(v));localStorage.setItem('surestone:asked',JSON.stringify(v))}catch{}}
+function askedAny(){try{return JSON.parse(localStorage.getItem('surestone:asked')||'null')}catch{return null}}
 async function unlockRequest(h,{name,phone,recheck,website=''}){const c=crmConfig();const r=await fetch(`${c.url}/api/site/unlock`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:c.formKey,t:state.shortlist?.t||undefined,project:h.crmId,projectName:h.crmName,name,phone,what:unlockState.what==='plans'?'plans':'brochure',recheck:!!recheck,website})});const res=await r.json().catch(()=>({}));if(res.locked)return{locked:true,message:res.error};if(!r.ok||!res.ok)throw new Error(res.error||'Could not open it right now. Please try again.');return res}
 function showWaiting(h,msg){const d=unlockDialog(),ask=d.querySelector('#unlockAsk'),box=d.querySelector('#unlockFiles');ask.hidden=true;box.hidden=false;$('#unlockTitle').textContent='Opens after our call';$('#unlockSub').textContent=h.title;box.innerHTML=`<div class="unlock-wait"><span aria-hidden="true">🔒</span><p>${esc(msg||'Thank you! Our team will call you soon. The brochure and floor plans open here right after that call.')}</p><button type="button" class="button-outline" data-unlock-recheck>I have had the call, check again</button></div>`;if(!d.open)d.showModal()}
-document.addEventListener('click',async e=>{const b=e.target.closest('[data-unlock-recheck]');if(!b)return;const h=homeById(unlockState.home),a=askedFor(h?.id);if(!h||!a)return;b.disabled=true;try{const res=await unlockRequest(h,{...a,recheck:true});if(res.locked)showWaiting(h,res.message);else{unlockSave(h.id,{brochure:res.brochure,plans:res.plans});markUnlocked(h);showUnlocked(h,{brochure:res.brochure,plans:res.plans})}}catch(err){b.disabled=false;toast(err.message==='Failed to fetch'?'Could not connect. Try again.':err.message)}});
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-unlock-recheck]');if(!b)return;const h=homeById(unlockState.home),a=askedFor(h?.id);if(!h||!a)return;b.disabled=true;try{const res=await unlockRequest(h,{...a,recheck:true});if(res.locked)showWaiting(h,res.message);else{unlockSave(h.id);markUnlocked(h);showUnlocked(h,{brochure:res.brochure,plans:res.plans})}}catch(err){b.disabled=false;toast(err.message==='Failed to fetch'?'Could not connect. Try again.':err.message)}});
 function markUnlocked(h){$$(`[data-unlock-home="${CSS.escape(h.id)}"]`).forEach(b=>{b.classList.remove('locked');b.querySelector('.lock')?.remove()})}
 function unlockDialog(){
   let d=document.getElementById('unlockDialog');if(d)return d;
@@ -115,8 +119,9 @@ function unlockDialog(){
     formError(form,'');btn.disabled=true;
     let res;try{res=await unlockRequest(h,{name,phone,website:form.elements.website.value})}catch(err){btn.disabled=false;formError(form,err.message==='Failed to fetch'?'Could not connect. Check your internet and try again.':err.message);return}
     btn.disabled=false;state.profile={...state.profile,name:state.profile.name||name,phone:state.profile.phone||phone};store.write('profile',state.profile);
-    if(res.locked){setAsked(h.id,{name,phone});showWaiting(h,res.message);return}
-    unlockSave(h.id,{brochure:res.brochure,plans:res.plans});markUnlocked(h);showUnlocked(h,{brochure:res.brochure,plans:res.plans});
+    setAsked(h.id,{name,phone});
+    if(res.locked){unlockForget(h.id);showWaiting(h,res.message);return}
+    unlockSave(h.id);markUnlocked(h);showUnlocked(h,{brochure:res.brochure,plans:res.plans});
   });
   return d;
 }
@@ -135,9 +140,10 @@ function showUnlocked(h,files){
 }
 function openUnlock(id,what){
   const h=homeById(id);if(!h)return;unlockState.home=id;unlockState.what=what;
-  const cached=unlockCache(h.id);if(cached){showUnlocked(h,cached);return}
-  const asked=askedFor(h.id);
-  if(asked&&crmConfig()){unlockRequest(h,{...asked,recheck:true}).then(res=>{if(res.locked)showWaiting(h,res.message);else{unlockSave(h.id,{brochure:res.brochure,plans:res.plans});markUnlocked(h);showUnlocked(h,{brochure:res.brochure,plans:res.plans})}}).catch(()=>showWaiting(h));return}
+  const asked=askedFor(h.id),known=!asked&&askedAny();
+  // Already gave their details for another home: ask for this one too (the team sees it), no form again.
+  if(known&&crmConfig()){unlockRequest(h,known).then(res=>{setAsked(h.id,known);if(res.locked){unlockForget(h.id);showWaiting(h,res.message)}else{unlockSave(h.id);markUnlocked(h);showUnlocked(h,{brochure:res.brochure,plans:res.plans})}}).catch(()=>showWaiting(h,'Could not check right now. Please try again in a minute.'));return}
+  if(asked&&crmConfig()){unlockRequest(h,{...asked,recheck:true}).then(res=>{if(res.locked){unlockForget(h.id);showWaiting(h,res.message)}else{unlockSave(h.id);markUnlocked(h);showUnlocked(h,{brochure:res.brochure,plans:res.plans})}}).catch(()=>showWaiting(h,'Could not check right now. Please try again in a minute.'));return}
   const d=unlockDialog(),form=d.querySelector('#unlockForm');
   d.querySelector('#unlockAsk').hidden=false;d.querySelector('#unlockFiles').hidden=true;
   $('#unlockTitle').textContent=what==='plans'?'See the floor plans':'Get the brochure';
