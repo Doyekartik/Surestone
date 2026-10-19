@@ -100,14 +100,14 @@ function unlockForget(id){try{localStorage.removeItem('surestone:open:'+id)}catc
 function askedFor(id){try{return JSON.parse(localStorage.getItem('surestone:asked:'+id)||'null')}catch{return null}}
 function setAsked(id,v){try{localStorage.setItem('surestone:asked:'+id,JSON.stringify(v));localStorage.setItem('surestone:asked',JSON.stringify(v))}catch{}}
 function askedAny(){try{return JSON.parse(localStorage.getItem('surestone:asked')||'null')}catch{return null}}
-async function unlockRequest(h,{name,phone,recheck,website=''}){const c=crmConfig();const r=await fetch(`${c.url}/api/site/unlock`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:c.formKey,t:state.shortlist?.t||undefined,project:h.crmId,projectName:h.crmName,name,phone,what:unlockState.what==='plans'?'plans':'brochure',recheck:!!recheck,website})});const res=await r.json().catch(()=>({}));if(res.locked)return{locked:true,message:res.error};if(!r.ok||!res.ok)throw new Error(res.error||'Could not open it right now. Please try again.');return res}
-function showWaiting(h,msg){const d=unlockDialog(),ask=d.querySelector('#unlockAsk'),box=d.querySelector('#unlockFiles');ask.hidden=true;box.hidden=false;$('#unlockTitle').textContent='Opens after our call';$('#unlockSub').textContent=h.title;box.innerHTML=`<div class="unlock-wait"><span aria-hidden="true">🔒</span><p>${esc(msg||'Thank you! Our team will call you soon. The brochure and floor plans open here right after that call.')}</p><button type="button" class="button-outline" data-unlock-recheck>I have had the call, check again</button></div>`;if(!d.open)d.showModal()}
-document.addEventListener('click',async e=>{const b=e.target.closest('[data-unlock-recheck]');if(!b)return;const h=homeById(unlockState.home),a=askedFor(h?.id);if(!h||!a)return;b.disabled=true;try{const res=await unlockRequest(h,{...a,recheck:true});if(res.locked)showWaiting(h,res.message);else{unlockSave(h.id);markUnlocked(h);showUnlocked(h,{brochure:res.brochure,plans:res.plans})}}catch(err){b.disabled=false;toast(err.message==='Failed to fetch'?'Could not connect. Try again.':err.message)}});
+async function unlockRequest(h,{name,phone,recheck,website=''}){const c=crmConfig();const r=await fetch(`${c.url}/api/site/unlock`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:c.formKey,t:state.shortlist?.t||undefined,project:h.crmId,projectName:h.crmName,name,phone,vtoken:vSaved()?.token,what:unlockState.what==='plans'?'plans':'brochure',recheck:!!recheck,website})});const res=await r.json().catch(()=>({}));if(res.needVerify){vForget();state.needVerify=true;return{needVerify:true}}if(res.locked)return{locked:true,message:res.error};if(!r.ok||!res.ok)throw new Error(res.error||'Could not open it right now. Please try again.');return res}
+function showWaiting(h,msg){const d=unlockDialog(),ask=d.querySelector('#unlockAsk'),box=d.querySelector('#unlockFiles');ask.hidden=true;d.querySelector('#unlockVerify').hidden=true;box.hidden=false;$('#unlockTitle').textContent='Opens after our call';$('#unlockSub').textContent=h.title;box.innerHTML=`<div class="unlock-wait"><span aria-hidden="true">🔒</span><p>${esc(msg||'Thank you! Our team will call you soon. The brochure and floor plans open here right after that call.')}</p><button type="button" class="button-outline" data-unlock-recheck>I have had the call, check again</button></div>`;if(!d.open)d.showModal()}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-unlock-recheck]');if(!b)return;const h=homeById(unlockState.home),a=askedFor(h?.id);if(!h||!a)return;b.disabled=true;try{const res=await unlockRequest(h,{...a,recheck:true});if(res.needVerify)return openVerify(h);if(res.locked)showWaiting(h,res.message);else{unlockSave(h.id);markUnlocked(h);showUnlocked(h,{brochure:res.brochure,plans:res.plans})}}catch(err){b.disabled=false;toast(err.message==='Failed to fetch'?'Could not connect. Try again.':err.message)}});
 function markUnlocked(h){$$(`[data-unlock-home="${CSS.escape(h.id)}"]`).forEach(b=>{b.classList.remove('locked');b.querySelector('.lock')?.remove()})}
 function unlockDialog(){
   let d=document.getElementById('unlockDialog');if(d)return d;
   d=document.createElement('dialog');d.className='dialog';d.id='unlockDialog';
-  d.innerHTML='<form class="dialog-shell contact-shell" id="unlockForm" novalidate><header class="dialog-head"><div><h2 id="unlockTitle">Get the brochure</h2><p id="unlockSub"></p></div><button type="button" class="dialog-close" data-close="unlockDialog" aria-label="Close">×</button></header><div id="unlockAsk"><label class="form-row"><span>Your name</span><input name="name" autocomplete="name" placeholder="What should we call you?" required></label><label class="form-row"><span>Mobile number</span><input name="phone" type="tel" autocomplete="tel" placeholder="+91" required></label><input name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="display:none"><button class="gold-button contact-submit" type="submit">Request access <span>→</span></button><p class="unlock-note">We share your number only with our own team. No spam.</p></div><div id="unlockFiles" hidden></div></form>';
+  d.innerHTML='<form class="dialog-shell contact-shell" id="unlockForm" novalidate><header class="dialog-head"><div><h2 id="unlockTitle">Get the brochure</h2><p id="unlockSub"></p></div><button type="button" class="dialog-close" data-close="unlockDialog" aria-label="Close">×</button></header><div id="unlockAsk"><label class="form-row"><span>Your name</span><input name="name" autocomplete="name" placeholder="What should we call you?" required></label><label class="form-row"><span>Mobile number</span><input name="phone" type="tel" autocomplete="tel" placeholder="+91" required></label><input name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="display:none"><button class="gold-button contact-submit" type="submit">Request access <span>→</span></button><p class="unlock-note">We share your number only with our own team. No spam.</p></div><div id="unlockVerify" hidden><label class="form-row"><span>Your name</span><input name="vname" autocomplete="name" placeholder="What should we call you?"></label><div class="verify-code" id="verifyCode">Getting your code…</div><a class="gold-button contact-submit wa-verify" id="waVerify" href="#" target="_blank" rel="noopener noreferrer" aria-disabled="true">Verify on WhatsApp <span>→</span></a><p class="unlock-note">WhatsApp opens with a message ready. Just press <b>Send</b>, then come back here. It is free, and it proves this is your number.</p><p class="verify-status" id="verifyStatus" role="status"></p></div><div id="unlockFiles" hidden></div></form>';
   document.body.appendChild(d);
   d.addEventListener('click',e=>{if(e.target===d)d.close()});
   d.querySelector('#unlockForm').addEventListener('submit',async e=>{
@@ -117,7 +117,7 @@ function unlockDialog(){
     if(phone.replace(/\D/g,'').length<10){formError(form,'Please enter a valid mobile number (India: 10 digits).');return}
     if(!h||!c||!c.formKey){formError(form,'This is not available right now. Please call us.');return}
     formError(form,'');btn.disabled=true;
-    let res;try{res=await unlockRequest(h,{name,phone,website:form.elements.website.value})}catch(err){btn.disabled=false;formError(form,err.message==='Failed to fetch'?'Could not connect. Check your internet and try again.':err.message);return}
+    let res;try{res=await unlockRequest(h,{name,phone,website:form.elements.website.value});if(res.needVerify){btn.disabled=false;return openVerify(h)}}catch(err){btn.disabled=false;formError(form,err.message==='Failed to fetch'?'Could not connect. Check your internet and try again.':err.message);return}
     btn.disabled=false;state.profile={...state.profile,name:state.profile.name||name,phone:state.profile.phone||phone};store.write('profile',state.profile);
     setAsked(h.id,{name,phone});
     if(res.locked){unlockForget(h.id);showWaiting(h,res.message);return}
@@ -127,7 +127,7 @@ function unlockDialog(){
 }
 function showUnlocked(h,files){
   const d=unlockDialog(),ask=d.querySelector('#unlockAsk'),box=d.querySelector('#unlockFiles');
-  ask.hidden=true;box.hidden=false;
+  ask.hidden=true;d.querySelector('#unlockVerify').hidden=true;box.hidden=false;
   const plans=(files.plans||[]).filter(p=>/^https?:\/\//.test(p.url||''));
   const isImg=u=>/\.(png|jpe?g|webp|gif|avif)(\?|$)/i.test(u);
   const wantPlans=unlockState.what==='plans';
@@ -142,14 +142,46 @@ function showUnlocked(h,files){
     :brochure||'<p class="unlock-note">The brochure is not added yet. Our team will send it to you.</p>';
   if(!d.open)d.showModal();
 }
+/* ---- Verify on WhatsApp: the client sends one WhatsApp message; the CRM learns the real number from WhatsApp ---- */
+function vSaved(){try{const v=JSON.parse(localStorage.getItem('surestone:vtoken')||'null');return v&&/^[a-f0-9]{64}$/.test(v.token||'')?v:null}catch{return null}}
+function vForget(){try{localStorage.removeItem('surestone:vtoken')}catch{}}
+let verifyTimer=null;
+async function openVerify(h){
+  const c=crmConfig();if(!c)return;
+  const d=unlockDialog(),form=d.querySelector('#unlockForm'),panel=d.querySelector('#unlockVerify'),link=$('#waVerify'),code=$('#verifyCode'),status=$('#verifyStatus');
+  d.querySelector('#unlockAsk').hidden=true;d.querySelector('#unlockFiles').hidden=true;panel.hidden=false;
+  $('#unlockTitle').textContent='Verify your number';$('#unlockSub').textContent=`${h.title}: one quick WhatsApp message, then our team will call you.`;
+  if(!form.elements.vname.value)form.elements.vname.value=state.profile.name||'';
+  link.setAttribute('aria-disabled','true');link.href='#';code.textContent='Getting your code…';status.textContent='';formError(form,'');
+  if(!d.open)d.showModal();
+  clearInterval(verifyTimer);
+  let start;try{const r=await fetch(`${c.url}/api/site/verify`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'start',key:c.formKey})});start=await r.json().catch(()=>({}));if(!r.ok||!start.ok)throw new Error(start.error||'Could not start. Please try again.')}catch(err){code.textContent='';status.textContent=err.message==='Failed to fetch'?'Could not connect. Check your internet and try again.':err.message;return}
+  code.innerHTML=`Your code <b>${esc(start.code)}</b>`;
+  link.href=`https://wa.me/${start.wa}?text=${encodeURIComponent('Verify '+start.code)}`;link.removeAttribute('aria-disabled');
+  link.onclick=e=>{const nm=form.elements.vname.value.trim();if(nm.length<2){e.preventDefault();formError(form,'Please enter your name first.');return}formError(form,'');state.profile={...state.profile,name:state.profile.name||nm};store.write('profile',state.profile);status.textContent='Waiting for your WhatsApp message…'};
+  const began=Date.now();
+  verifyTimer=setInterval(async()=>{
+    if(!d.open||Date.now()-began>30*60e3){clearInterval(verifyTimer);return}
+    let v;try{v=await fetch(`${c.url}/api/site/verify`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'status',key:c.formKey,token:start.token})}).then(r=>r.json())}catch{return}
+    if(v.expired&&!v.verified){clearInterval(verifyTimer);status.textContent='This code expired. Close this and tap the button again.';return}
+    if(!v.verified)return;
+    clearInterval(verifyTimer);
+    const nm=form.elements.vname.value.trim()||state.profile.name||'';
+    try{localStorage.setItem('surestone:vtoken',JSON.stringify({token:start.token,name:nm}))}catch{}
+    state.needVerify=false;status.textContent=`✅ Verified ${v.phone||''}`;
+    try{const res=await unlockRequest(h,{name:nm});setAsked(h.id,{name:nm});if(res.needVerify)return;if(res.locked){unlockForget(h.id);showWaiting(h,res.message)}else{unlockSave(h.id);markUnlocked(h);showUnlocked(h,{brochure:res.brochure,plans:res.plans})}}catch(err){status.textContent=err.message}
+  },3000);
+}
 function openUnlock(id,what){
   const h=homeById(id);if(!h)return;unlockState.home=id;unlockState.what=what;
+  if((state.crmContact?.verify||state.needVerify)&&!vSaved())return openVerify(h);
+  if(vSaved()&&!askedFor(h.id)&&!askedAny()&&crmConfig()){const nm=vSaved().name||state.profile.name||'';unlockRequest(h,{name:nm}).then(res=>{if(res.needVerify)return openVerify(h);setAsked(h.id,{name:nm});if(res.locked){unlockForget(h.id);showWaiting(h,res.message)}else{unlockSave(h.id);markUnlocked(h);showUnlocked(h,{brochure:res.brochure,plans:res.plans})}}).catch(()=>showWaiting(h,'Could not check right now. Please try again in a minute.'));return}
   const asked=askedFor(h.id),known=!asked&&askedAny();
   // Already gave their details for another home: ask for this one too (the team sees it), no form again.
-  if(known&&crmConfig()){unlockRequest(h,known).then(res=>{setAsked(h.id,known);if(res.locked){unlockForget(h.id);showWaiting(h,res.message)}else{unlockSave(h.id);markUnlocked(h);showUnlocked(h,{brochure:res.brochure,plans:res.plans})}}).catch(()=>showWaiting(h,'Could not check right now. Please try again in a minute.'));return}
-  if(asked&&crmConfig()){unlockRequest(h,{...asked,recheck:true}).then(res=>{if(res.locked){unlockForget(h.id);showWaiting(h,res.message)}else{unlockSave(h.id);markUnlocked(h);showUnlocked(h,{brochure:res.brochure,plans:res.plans})}}).catch(()=>showWaiting(h,'Could not check right now. Please try again in a minute.'));return}
+  if(known&&crmConfig()){unlockRequest(h,known).then(res=>{if(res.needVerify)return openVerify(h);setAsked(h.id,known);if(res.locked){unlockForget(h.id);showWaiting(h,res.message)}else{unlockSave(h.id);markUnlocked(h);showUnlocked(h,{brochure:res.brochure,plans:res.plans})}}).catch(()=>showWaiting(h,'Could not check right now. Please try again in a minute.'));return}
+  if(asked&&crmConfig()){unlockRequest(h,{...asked,recheck:true}).then(res=>{if(res.needVerify)return openVerify(h);if(res.locked){unlockForget(h.id);showWaiting(h,res.message)}else{unlockSave(h.id);markUnlocked(h);showUnlocked(h,{brochure:res.brochure,plans:res.plans})}}).catch(()=>showWaiting(h,'Could not check right now. Please try again in a minute.'));return}
   const d=unlockDialog(),form=d.querySelector('#unlockForm');
-  d.querySelector('#unlockAsk').hidden=false;d.querySelector('#unlockFiles').hidden=true;
+  d.querySelector('#unlockAsk').hidden=false;d.querySelector('#unlockVerify').hidden=true;d.querySelector('#unlockFiles').hidden=true;
   $('#unlockTitle').textContent=what==='plans'?'See the floor plans':'Get the brochure';
   $('#unlockSub').textContent=`${h.title}: leave your name and number. Our team will call you, and right after that call the brochure and floor plans open here.`;
   if(!form.elements.name.value)form.elements.name.value=state.profile.name||'';
@@ -269,7 +301,7 @@ async function loadCrmListings(c){
     const response=await fetch(`${c.url}/api/site/projects?org=${encodeURIComponent(c.org)}`);
     const data=await response.json().catch(()=>({}));
     if(!response.ok||!Array.isArray(data.projects))throw new Error(data.error||`CRM request failed (${response.status})`);
-    state.crmContact=data.contact&&typeof data.contact.phone==='string'&&/^\+?[0-9]{8,15}$/.test(data.contact.phone)?{phone:data.contact.phone}:null;
+    state.crmContact={phone:data.contact&&typeof data.contact.phone==='string'&&/^\+?[0-9]{8,15}$/.test(data.contact.phone)?data.contact.phone:null,verify:!!data.contact?.verify_whatsapp};
     homes.splice(0,homes.length,...data.projects.map(crmProjectToHome));
   }catch(error){console.warn('Sure Stone could not load projects from the CRM.',error);const el=$('#emptyResults');if(el){el.dataset.crmError='1'}}
   if(document.body.classList.contains('page-search'))state.visibleCount=Math.max(state.visibleCount,homes.length);
