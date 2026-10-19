@@ -135,7 +135,11 @@ function showUnlocked(h,files){
   $('#unlockSub').textContent=`${h.title} · thank you, our team will be in touch.`;
   const brochure=files.brochure&&/^https?:\/\//.test(files.brochure)?`<a class="gold-button unlock-open" href="${esc(files.brochure)}" target="_blank" rel="noopener noreferrer">Open the brochure <span>→</span></a>`:'';
   const planHtml=plans.length?`<div class="plan-grid">${plans.map((p,i)=>`<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" class="plan-item">${isImg(p.url)?`<img src="${esc(p.url)}" alt="${esc(p.label||'Floor plan '+(i+1))}" loading="lazy">`:'<span class="plan-file">PDF</span>'}<span>${esc(p.label||'Floor plan '+(i+1))}</span></a>`).join('')}</div>`:'';
-  box.innerHTML=(wantPlans?(planHtml||'<p class="unlock-note">Floor plans are not added yet. Our team will send them to you.</p>')+(brochure?`<p class="unlock-more">${brochure}</p>`:''):(brochure||'<p class="unlock-note">The brochure is not added yet. Our team will send it to you.</p>')+(planHtml?`<h3 class="unlock-h">Floor plans</h3>${planHtml}`:''));
+  // Show only what was asked for: floor plans → floor plans, brochure → brochure.
+  const onePlan=plans.length===1?`<a class="gold-button unlock-open" href="${esc(plans[0].url)}" target="_blank" rel="noopener noreferrer">Open the floor plan${plans[0].label?' · '+esc(plans[0].label.slice(0,40)):''} <span>→</span></a>`:'';
+  box.innerHTML=wantPlans
+    ?(plans.length===1&&!isImg(plans[0].url)?onePlan:planHtml)||'<p class="unlock-note">Floor plans are not added yet. Our team will send them to you.</p>'
+    :brochure||'<p class="unlock-note">The brochure is not added yet. Our team will send it to you.</p>';
   if(!d.open)d.showModal();
 }
 function openUnlock(id,what){
