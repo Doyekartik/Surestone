@@ -196,3 +196,5 @@ input:not([type=button]):not([type=submit]),textarea,[contenteditable=true]{curs
 .phone-recaptcha{min-height:0;margin:12px 0}
 #phoneCodeRow.hidden{display:none}
 @media(max-width:560px){.auth-actions{gap:8px}.auth-methods{gap:5px}.auth-method-button{padding:0 8px;font-size:10px}.auth-actions #authMessage{flex-basis:100%}.auth-form{padding:22px 19px}.auth-form .dialog-head h2{font-size:31px}}
+
+.form-error{margin:12px 0 0;color:#a3402d;font-size:12.5px;line-height:1.5}.form-error[hidden]{display:none}
