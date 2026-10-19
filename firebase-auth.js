@@ -28,6 +28,8 @@ if (!configured) {
     async sendPhoneCode() { throw new Error('Firebase is not configured yet.'); },
     async confirmPhoneCode() { throw new Error('Firebase is not configured yet.'); },
     clearPhoneVerifier() {},
+    currentPhone: () => '',
+    async getIdToken() { return ''; },
     async signOut() {}
   };
   document.dispatchEvent(new CustomEvent('surestone-auth-ready'));
@@ -75,6 +77,9 @@ if (!configured) {
       phoneVerifier = null;
       phoneConfirmation = null;
     },
+    // Used by the brochure check: the CRM verifies this signed token to learn the real number.
+    currentPhone: () => auth.currentUser?.phoneNumber || '',
+    getIdToken: () => (auth.currentUser ? auth.currentUser.getIdToken() : Promise.resolve('')),
     signOut: () => signOut(auth)
   };
 

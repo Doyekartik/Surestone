@@ -211,4 +211,5 @@ input:not([type=button]):not([type=submit]),textarea,[contenteditable=true]{curs
 #amenityChips{max-height:180px;overflow:auto}
 .unlock-wait{text-align:center;padding:18px 6px 6px;display:grid;gap:12px;justify-items:center}.unlock-wait>span{font-size:34px}.unlock-wait p{margin:0;font-size:13px;line-height:1.7;color:#5d564b;max-width:42ch}.unlock-wait .button-outline{padding:11px 15px;font-size:12px;cursor:pointer}
 .detail-files .locked{opacity:.92}.detail-files .locked.gold-button{background:#8f7a5c}
-.verify-code{margin:16px 0 4px;font-size:13px;color:#5d564b}.verify-code b{font-size:22px;letter-spacing:.12em;color:#2f2b25;margin-left:8px}.wa-verify{text-decoration:none;background:#1f9d55}.wa-verify:hover{background:#17804a}.wa-verify[aria-disabled=true]{opacity:.5;pointer-events:none}.verify-status{margin:10px 0 0;font-size:12.5px;color:#617057;min-height:1em}
+.verify-status{margin:10px 0 0;font-size:12.5px;color:#617057;min-height:1em}
+.v-recaptcha{margin-top:14px;min-height:0}#vCode{letter-spacing:.4em;font-size:18px}#unlockVerify [hidden]{display:none}
