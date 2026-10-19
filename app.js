@@ -52,7 +52,7 @@ function openDialog(id){const d=document.getElementById(id);if(d&&!d.open)d.show
 function closeDialog(id){const d=document.getElementById(id);if(d?.open)d.close()}
 function openAccount(tab='saved'){state.accountTab=tab;$$('.account-tab').forEach(button=>button.classList.toggle('active',button.dataset.accountTab===tab));renderAccountPanel();openDialog('accountDialog')}
 function openSellerEnquiry(){$('#contactSubline').textContent='Tell us about the home you would like to sell.';$('#contactHomeLabel').textContent='Where is your home?';$('#contactArea').value='';$('#contactForm').dataset.kind='sell';openDialog('contactDialog')}
-function syncHeader(){const count=state.saved.length;$('#savedCount').textContent=count;$('#profileSavedCount').textContent=count;$('#accountSavedBadge').textContent=count;$('#savedCount').dataset.empty=count===0?'true':'false';const p=state.profile;$('.account-avatar').textContent=(p.name||'S').trim().charAt(0).toUpperCase();$('#profileAvatar').textContent=(p.name||'G').trim().charAt(0).toUpperCase();$('#accountNameDisplay').textContent=p.name||'Your personal space';$('.account-button-copy strong').textContent=p.name?`Hello, ${p.name.split(/\s+/)[0]}`:'Your account';$('.profile-edit').innerHTML=p.name?'Edit your details <span></span>':'Add your details <span></span>';const signedIn=Boolean(state.authUser);$('.auth-methods').classList.toggle('hidden',signedIn);$('#googleSignOut').classList.toggle('hidden',!signedIn);$('#authMessage').textContent=signedIn?`Signed in as ${state.authUser.email||state.authUser.phone||state.authUser.name}`:'';renderAccountPanel()}
+function syncHeader(){const count=state.saved.length;$('#savedCount').textContent=count;$('#profileSavedCount').textContent=count;$('#accountSavedBadge').textContent=count;$('#savedCount').dataset.empty=count===0?'true':'false';const p=state.profile;$('.account-avatar').textContent=(p.name||'S').trim().charAt(0).toUpperCase();$('#profileAvatar').textContent=(p.name||'G').trim().charAt(0).toUpperCase();$('#accountNameDisplay').textContent=p.name||'Your personal space';$('.account-button-copy strong').textContent=p.name?`Hello, ${p.name.split(/\s+/)[0]}`:'Your account';$('.profile-edit').innerHTML=p.name?'Edit your details <span></span>':'Add your details <span></span>';const signedIn=Boolean(state.authUser);$('.auth-methods').classList.toggle('hidden',signedIn);$('#googleSignOut').classList.toggle('hidden',!signedIn);if(signedIn&&state.needEmailVerify)showVerifyEmail($('#authMessage'),state.authUser.email);else $('#authMessage').textContent=signedIn?`Signed in as ${state.authUser.email||state.authUser.phone||state.authUser.name}`:'';renderAccountPanel()}
 function filterHomes(){const search=state.location.toLowerCase().trim();let out=homes.filter(h=>{const modeOK=state.mode==='new'?!h.moveIn:true;if(!modeOK)return false;const areaOK=!search||`${h.location} ${h.neighbourhood} ${h.city} ${h.title}`.toLowerCase().includes(search);if(!areaOK)return false;if(state.type==='lease'?!h.forLease:state.type!=='all'&&h.type!==state.type)return false;if(state.price==='under100'&&h.price>=10000000)return false;if(state.price==='100to300'&&(h.price<10000000||h.price>30000000))return false;if(state.price==='over300'&&h.price<=30000000)return false;if(state.beds!=='all'&&h.beds<Number(state.beds))return false;if(state.area&&h.area<state.area)return false;if(state.moveIn!=='all'&&h.moveIn!==(state.moveIn==='true'))return false;if(state.amenities.some(a=>!(h.filterTags||h.amenities).some(x=>String(x).toLowerCase()===a.toLowerCase())))return false;if(state.budget!=='all'){const L=h.price/100000,[lo,hi]=({u50:[0,50],'50to100':[50,100],'100to200':[100,200],'200to300':[200,300],o300:[300,1e9]})[state.budget]||[0,1e9];if(!h.price||L<lo||L>=hi)return false}if(state.deal==='sale'&&h.deal==='lease')return false;if(state.deal==='lease'&&!h.forLease)return false;if(state.status!=='all'&&(h.availability||(h.moveIn?'Ready to move':'Under construction'))!==state.status)return false;if(state.localities.length&&!state.localities.includes(h.neighbourhood))return false;return true});if(state.sort==='votes')out.sort((a,b)=>(b.votes||0)-(a.votes||0));if(state.sort==='price-low')out.sort((a,b)=>a.price-b.price);if(state.sort==='price-high')out.sort((a,b)=>b.price-a.price);if(state.sort==='area-high')out.sort((a,b)=>b.area-a.area);return out}
 function renderListings(){const filtered=filterHomes(),shown=filtered.slice(0,state.visibleCount),grid=$('#propertyGrid');grid.innerHTML=shown.map(cardHTML).join('');$('#resultLabel').textContent=state.mode==='new'?'New projects to explore':'Homes to fall for';$('#emptyResults').classList.toggle('hidden',filtered.length!==0);$('#loadMore').classList.toggle('hidden',filtered.length<=state.visibleCount);$('#seeAllLink').textContent=filtered.length>state.visibleCount?'EXPLORE ALL HOMES ':'EXPLORE ALL HOMES ';updateListingHeading();updateFilterIndicators();renderPills()}
 function updateListingHeading(){const heading=$('#listingTypeHeading');if(!heading)return;const plural={all:'Homes',Apartment:'Apartments',Villa:'Villas',Penthouse:'Penthouses',Plot:'Plots',Retail:'Retail spaces',lease:'Places for lease'};heading.textContent=plural[state.type]||`${state.type}s`}
@@ -66,7 +66,7 @@ function syncGlassSelect(select){if(!select)return;const wrap=select.closest('.g
 function positionGlassDropdown(trigger,menu){const rect=trigger.getBoundingClientRect(),width=Math.min(280,window.innerWidth-24),heightLimit=Math.min(194,window.innerHeight-24),height=Math.min(menu.scrollHeight,heightLimit),spaceBelow=window.innerHeight-rect.bottom-12,spaceAbove=rect.top-12,top=spaceBelow>=Math.min(height,180)||spaceBelow>=spaceAbove?rect.bottom+9:Math.max(12,rect.top-height-9),left=Math.max(12,Math.min(rect.left,window.innerWidth-width-12));menu.style.width=width+'px';menu.style.maxHeight=height+'px';menu.style.overflowY='auto';menu.style.left=left+'px';menu.style.top=top+'px'}
 function enhanceGlassSelect(select){if(select.classList.contains('glass-native-select')||select.closest('.glass-select-generic'))return;const wrap=document.createElement('span');wrap.className='glass-select glass-select-generic';const id='surestone-glass-'+(++glassMenuSequence),trigger=document.createElement('button'),value=document.createElement('span'),icon=document.createElementNS('http://www.w3.org/2000/svg','svg'),path=document.createElementNS('http://www.w3.org/2000/svg','path'),menu=document.createElement('div');select.parentNode.insertBefore(wrap,select);wrap.appendChild(select);select.classList.add('glass-native-select');select.tabIndex=-1;select.setAttribute('aria-hidden','true');trigger.type='button';trigger.className='glass-select-trigger';trigger.id=id+'-trigger';trigger.setAttribute('aria-haspopup','listbox');trigger.setAttribute('aria-expanded','false');trigger.setAttribute('aria-controls',id+'-options');trigger.setAttribute('aria-label',select.getAttribute('aria-label')||select.closest('label')?.querySelector(':scope > span, :scope > small')?.textContent.trim()||'Choose an option');value.className='glass-select-value';trigger.appendChild(value);icon.setAttribute('viewBox','0 0 16 16');icon.setAttribute('aria-hidden','true');path.setAttribute('d','m3.5 6 4.5 4 4.5-4');icon.appendChild(path);trigger.appendChild(icon);menu.className='glass-select-menu glass-select-menu-floating';menu.hidden=true;menu.id=id+'-options';menu.setAttribute('role','listbox');menu.setAttribute('aria-label',trigger.getAttribute('aria-label'));for(const item of [...select.options]){const option=document.createElement('button');option.type='button';option.setAttribute('role','option');option.dataset.glassValue=item.value;option.textContent=item.textContent;option.disabled=item.disabled;menu.appendChild(option)}wrap.append(trigger,menu);const options=()=>$$('[role="option"]',menu),setIndex=option=>{const index=options().indexOf(option);if(index>=0)menu.style.setProperty('--glass-hover-index',index)},position=()=>positionGlassDropdown(trigger,menu);const close=(returnFocus=false)=>{menu.hidden=true;wrap.classList.remove('glass-open');trigger.setAttribute('aria-expanded','false');if(returnFocus)trigger.focus()},open=(last=false)=>{menu.hidden=false;wrap.classList.add('glass-open');trigger.setAttribute('aria-expanded','true');position();const list=options(),current=list.findIndex(option=>option.dataset.glassValue===select.value),index=last?list.length-1:Math.max(0,current);menu.style.setProperty('--glass-hover-index',index);list[index]?.focus()},toggle=()=>menu.hidden?open():close();trigger.addEventListener('click',event=>{event.preventDefault();toggle()});trigger.addEventListener('keydown',event=>{if(['ArrowDown','ArrowUp','Enter',' '].includes(event.key)){event.preventDefault();if(menu.hidden)open(event.key==='ArrowUp');else options().find(option=>option.dataset.glassValue===select.value)?.focus()}else if(event.key==='Escape')close()});menu.addEventListener('pointerover',event=>{const option=event.target.closest('[role="option"]');if(option)setIndex(option)});menu.addEventListener('pointerleave',()=>setIndex(options().find(option=>option===document.activeElement)||options().find(option=>option.dataset.glassValue===select.value)));menu.addEventListener('focusin',event=>{const option=event.target.closest('[role="option"]');if(option)setIndex(option)});menu.addEventListener('click',event=>{event.preventDefault();const option=event.target.closest('[role="option"]');if(!option||option.disabled)return;select.value=option.dataset.glassValue;syncGlassSelect(select);select.dispatchEvent(new Event('change',{bubbles:true}));close(true)});menu.addEventListener('keydown',event=>{const list=options(),index=list.indexOf(event.target);if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();list[(index+(event.key==='ArrowDown'?1:list.length-1))%list.length]?.focus()}else if(event.key==='Home'||event.key==='End'){event.preventDefault();list[event.key==='Home'?0:list.length-1]?.focus()}else if(event.key==='Escape'){event.preventDefault();close(true)}});syncGlassSelect(select)}
 function initGlassDropdowns(root=document){$$('select',root).forEach(enhanceGlassSelect);if(!glassFloatingHandlers){glassFloatingHandlers=true;document.addEventListener('click',event=>$$('.glass-select-generic.glass-open').forEach(wrap=>{if(!wrap.contains(event.target)){const trigger=$('.glass-select-trigger',wrap),menu=$('.glass-select-menu',wrap);if(menu){menu.hidden=true;wrap.classList.remove('glass-open');trigger?.setAttribute('aria-expanded','false')}}}));window.addEventListener('scroll',()=>$$('.glass-select-menu-floating:not([hidden])').forEach(menu=>{const trigger=menu.closest('.glass-select')?.querySelector('.glass-select-trigger');if(trigger)positionGlassDropdown(trigger,menu)}),true);window.addEventListener('resize',()=>$$('.glass-select-menu-floating:not([hidden])').forEach(menu=>{const trigger=menu.closest('.glass-select')?.querySelector('.glass-select-trigger');if(trigger)positionGlassDropdown(trigger,menu)}))}}
-function setSave(id){if(state.saved.includes(id)){state.saved=state.saved.filter(x=>x!==id);toast('Taken off your saved homes.')}else{state.saved.unshift(id);toast('A little place to come back to.')}store.write('saved',state.saved);renderListings();syncHeader()}
+function setSave(id){const on=!state.saved.includes(id);if(!on){state.saved=state.saved.filter(x=>x!==id);toast('Taken off your saved homes.')}else{state.saved.unshift(id);toast(state.client?'Saved to your account.':'A little place to come back to.')}store.write('saved',state.saved);renderListings();syncHeader();saveToCrm(homeById(id),on)}
 function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function renderNeighbourhoods(){$('#neighbourhoodCards').innerHTML=neighbourhoods.map(n=>{return `<a href="search.html?location=${encodeURIComponent(n.name+', Raipur')}" class="neighbourhood-card"><img src="${photo(n.photo,640)}" alt="A view of ${esc(n.name)}, ${esc(n.city)}" loading="lazy"><span class="neighbourhood-meta"><strong>${esc(n.name)}</strong></span></a>`}).join('')}
 function showHomes({location=null,mode=null,type=null,clear=false}={}){if(clear){state.location='Raipur, Chhattisgarh';state.type='all';state.price='all';state.beds='all';state.area=0;state.moveIn='all';state.amenities=[]}if(location!==null)state.location=location;if(mode!==null)state.mode=mode;if(type!==null)state.type=type;state.visibleCount=homes.length;window.location.href=`search.html?location=${encodeURIComponent(state.location)}&type=${encodeURIComponent(state.type)}&price=${encodeURIComponent(state.price)}&beds=${encodeURIComponent(state.beds)}&area=${encodeURIComponent(state.area)}`}
@@ -299,6 +299,46 @@ document.addEventListener('click',async e=>{
   menu.querySelector('[data-copy]').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(url);toast('Link copied. Paste it anywhere.')}catch{prompt('Copy this link:',url)}menu.remove()});
   setTimeout(()=>document.addEventListener('click',function off(ev){if(!menu.contains(ev.target)&&ev.target!==b){menu.remove();document.removeEventListener('click',off)}}),0);
 });
+/* ---- Website accounts and saved homes in the CRM (one account per email / mobile; email must be verified) ---- */
+async function clientCall(body){const c=crmConfig();if(!c||!c.formKey)return null;try{const r=await fetch(`${c.url}/api/site/client`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:c.formKey,...body})});return await r.json().catch(()=>null)}catch{return null}}
+async function saveToCrm(h,on){
+  if(!h||!h.crm)return;const c=crmConfig();if(!c)return;
+  if(state.client){const tok=await window.sureStoneAuth?.getIdToken?.();if(tok){await clientCall({action:'save',idToken:tok,project:h.crmId,on});return}}
+  if(voterId)clientCall({action:'save_anon',org:c.org,voter:voterId,project:h.crmId,on});
+}
+function syncSaves(serverIds){
+  if(!homes.some(h=>h.crm)){state.pendingServerSaves=serverIds;return}
+  state.pendingServerSaves=null;const c=crmConfig();
+  const server=new Set((serverIds||[]).map(String));
+  const local=state.saved.map(homeById).filter(h=>h&&h.crm);
+  // homes saved before signing in: move them to the account (and drop the anonymous count)
+  local.forEach(async h=>{if(!server.has(h.crmId)){const tok=await window.sureStoneAuth?.getIdToken?.();if(tok)await clientCall({action:'save',idToken:tok,project:h.crmId,on:true})}if(voterId&&c)clientCall({action:'save_anon',org:c.org,voter:voterId,project:h.crmId,on:false})});
+  homes.filter(h=>h.crm&&server.has(h.crmId)&&!state.saved.includes(h.id)).forEach(h=>state.saved.push(h.id));
+  store.write('saved',state.saved);renderListings();syncHeader();
+}
+function showVerifyEmail(where,email){
+  const box=where;if(!box)return;
+  box.innerHTML=`<span class="verify-mail">📧 We sent a link to <b>${esc(email||'your email')}</b>. Open it to verify your email, then tap below.</span><span class="verify-mail-btns"><button type="button" class="button-outline" data-mail-check>I have verified</button><button type="button" class="button-text" data-mail-resend>Send the link again</button></span>`;
+}
+document.addEventListener('click',async e=>{
+  if(e.target.closest('[data-mail-resend]')){try{await window.sureStoneAuth.resendVerification();toast('We sent the link again. Check your inbox and spam.')}catch(err){toast(err?.code==='auth/too-many-requests'?'Please wait a minute before asking again.':'Could not send the link. Please try again.')}return}
+  if(e.target.closest('[data-mail-check]')){const r=await window.sureStoneAuth?.refreshUser?.();if(r?.emailVerified){state.needEmailVerify=false;closeDialog('createAccountDialog');toast('Email verified. Your account is ready.');await registerClient(state.authUser,true);syncHeader()}else toast('Not verified yet. Open the link in the email first.')}
+});
+async function registerClient(user,fresh){
+  if(!user||!crmConfig())return;
+  const tok=await window.sureStoneAuth?.getIdToken?.(!!fresh);if(!tok)return;
+  const res=await clientCall({action:'register',idToken:tok,name:state.profile.name||user.name||''});
+  if(!res)return;
+  if(res.needEmailVerify){state.client=false;state.needEmailVerify=true;syncHeader();return}
+  if(res.conflict){
+    state.client=false;
+    const what=res.conflict==='phone'?'mobile number':'email';
+    // a brand-new account that repeats an existing email / mobile is removed again
+    try{if(user.createdAt&&Date.now()-user.createdAt<5*60e3)await window.sureStoneAuth.deleteCurrentUser();else await window.sureStoneAuth.signOut()}catch{try{await window.sureStoneAuth.signOut()}catch{}}
+    toast(`An account with this ${what} already exists. Please sign in with that account.`);return;
+  }
+  if(res.ok){state.client=true;state.needEmailVerify=false;syncSaves(res.saves||[])}
+}
 async function loadCrmListings(c){
   if(document.body.classList.contains('page-shortlist'))return loadShortlist(c);
   const notFound='<div class="property-not-found"><h1>This home is no longer available.</h1><a href="search.html">Browse homes in Raipur</a></div>';
@@ -310,6 +350,7 @@ async function loadCrmListings(c){
     homes.splice(0,homes.length,...data.projects.map(crmProjectToHome));
   }catch(error){console.warn('Sure Stone could not load projects from the CRM.',error);const el=$('#emptyResults');if(el){el.dataset.crmError='1'}}
   if(document.body.classList.contains('page-search'))state.visibleCount=Math.max(state.visibleCount,homes.length);
+  if(state.pendingServerSaves)syncSaves(state.pendingServerSaves);
   refreshFilterChoices();renderNeighbourhoods();renderListings();
   if(document.body.classList.contains('page-property')){
     const property=pageHome();
@@ -357,7 +398,9 @@ function initFirebaseAuth(){
     'auth/invalid-phone-number':'Enter a phone number with its country code, such as +91.',
     'auth/operation-not-allowed':'This sign-in method is not enabled in Firebase yet.',
     'auth/too-many-requests':'Too many attempts. Please wait and try again.',
-    'auth/quota-exceeded':'Firebase has reached its SMS limit for now.'
+    'auth/quota-exceeded':'Firebase has reached its SMS limit for now.',
+    'auth/account-exists-with-different-credential':'An account with this email already exists. Sign in the way you did before (email or Google).',
+    'auth/credential-already-in-use':'This number or email is already used by another account. Sign in with that account.'
   }[error?.code]||error?.message||'Something went wrong. Please try again.');
   const openAuth=kind=>{
     closeDialog('accountDialog');
@@ -396,13 +439,14 @@ function initFirebaseAuth(){
   document.addEventListener('surestone-auth-state',event=>{
     const user=event.detail;state.authUser=user;
     if(user){state.profile={...state.profile,name:user.name||state.profile.name||'',email:user.email||state.profile.email||'',phone:user.phone||state.profile.phone||''};store.write('profile',state.profile)}
+    if(user){state.needEmailVerify=Boolean(user.passwordAccount&&!user.emailVerified&&!user.phone);registerClient(user)}else{state.client=false;state.needEmailVerify=false}
     syncHeader();signIn.disabled=false;
   });
   document.addEventListener('surestone-auth-error',event=>{message.textContent=event.detail?.message||'Google sign-in could not be completed.'});
   $('#emailLoginForm').addEventListener('submit',async event=>{
     event.preventDefault();const form=event.currentTarget,submit=form.querySelector('[type="submit"]'),status=$('#emailLoginMessage');
     submit.disabled=true;status.textContent='Signing in…';
-    try{const data=new FormData(form);await window.sureStoneAuth.signInEmail(data.get('email').trim(),data.get('password'));closeDialog('emailAuthDialog');toast('You’re signed in. Welcome back.')}
+    try{const data=new FormData(form);const cred=await window.sureStoneAuth.signInEmail(data.get('email').trim(),data.get('password'));closeDialog('emailAuthDialog');toast(cred?.user&&!cred.user.emailVerified?'Signed in. Please verify your email: open the link we sent you.':'You’re signed in. Welcome back.')}
     catch(error){status.textContent=authErrorText(error)}finally{submit.disabled=false}
   });
   $('#createAccountForm').addEventListener('submit',async event=>{
@@ -412,7 +456,8 @@ function initFirebaseAuth(){
       const data=new FormData(form),name=data.get('name').trim(),email=data.get('email').trim();
       const result=await window.sureStoneAuth.createEmailAccount(name,email,data.get('password'));
       state.profile={...state.profile,name,email,phone:result.user.phoneNumber||''};store.write('profile',state.profile);
-      state.authUser={uid:result.user.uid,name,email,phone:result.user.phoneNumber||''};syncHeader();closeDialog('createAccountDialog');toast('Your account is ready. Welcome to Sure Stone.')
+      state.authUser={uid:result.user.uid,name,email,phone:result.user.phoneNumber||'',emailVerified:false,passwordAccount:true,createdAt:Date.now()};state.needEmailVerify=true;syncHeader();
+      showVerifyEmail(status,email);toast('Almost done: check your email for the link.')
     }catch(error){status.textContent=authErrorText(error)}finally{submit.disabled=false}
   });
   $('#phoneLoginForm').addEventListener('submit',async event=>{

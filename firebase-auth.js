@@ -11,7 +11,8 @@ import {
   createUserWithEmailAndPassword,
   updateProfile,
   RecaptchaVerifier,
-  signInWithPhoneNumber
+  signInWithPhoneNumber,
+  sendEmailVerification
 } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import { firebaseConfig } from './firebase-config.js';
 
@@ -30,6 +31,9 @@ if (!configured) {
     clearPhoneVerifier() {},
     currentPhone: () => '',
     async getIdToken() { return ''; },
+    async resendVerification() {},
+    async refreshUser() { return null; },
+    async deleteCurrentUser() {},
     async signOut() {}
   };
   document.dispatchEvent(new CustomEvent('surestone-auth-ready'));
@@ -58,8 +62,13 @@ if (!configured) {
     async createEmailAccount(name, email, password) {
       const credential = await createUserWithEmailAndPassword(auth, email, password);
       if (name) await updateProfile(credential.user, { displayName: name });
+      // New email accounts must click the link in this email before they count (no fake emails).
+      await sendEmailVerification(credential.user, { url: location.origin + '/index.html' }).catch(() => {});
       return credential;
     },
+    resendVerification: () => (auth.currentUser ? sendEmailVerification(auth.currentUser, { url: location.origin + '/index.html' }) : Promise.resolve()),
+    async refreshUser() { if (!auth.currentUser) return null; await auth.currentUser.reload(); return { emailVerified: auth.currentUser.emailVerified }; },
+    async deleteCurrentUser() { if (auth.currentUser) await auth.currentUser.delete(); },
     async sendPhoneCode(phone, containerId) {
       if (phoneVerifier) phoneVerifier.clear();
       phoneVerifier = new RecaptchaVerifier(auth, containerId, { size: 'normal' });
@@ -79,7 +88,7 @@ if (!configured) {
     },
     // Used by the brochure check: the CRM verifies this signed token to learn the real number.
     currentPhone: () => auth.currentUser?.phoneNumber || '',
-    getIdToken: () => (auth.currentUser ? auth.currentUser.getIdToken() : Promise.resolve('')),
+    getIdToken: (fresh = false) => (auth.currentUser ? auth.currentUser.getIdToken(fresh) : Promise.resolve('')),
     signOut: () => signOut(auth)
   };
 
@@ -89,7 +98,9 @@ if (!configured) {
   onAuthStateChanged(auth, user => {
     document.dispatchEvent(new CustomEvent('surestone-auth-state', { detail: user ? {
       uid: user.uid, name: user.displayName || '', email: user.email || '',
-      phone: user.phoneNumber || '', photoURL: user.photoURL || ''
+      phone: user.phoneNumber || '', photoURL: user.photoURL || '',
+      emailVerified: user.emailVerified, createdAt: Date.parse(user.metadata?.creationTime || '') || 0,
+      passwordAccount: user.providerData.some(p => p.providerId === 'password')
     } : null }));
   });
   document.dispatchEvent(new CustomEvent('surestone-auth-ready'));
