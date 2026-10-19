@@ -484,3 +484,56 @@ function initFirebaseAuth(){
   $('#phoneAuthDialog').addEventListener('close',()=>{window.sureStoneAuth?.clearPhoneVerifier();$('#phoneRecaptcha').innerHTML=''});
 }
 initFirebaseAuth();
+
+/* ---------- Visitors who are not signed in give their name and mobile once before seeing a home in full ---------- */
+const GATE_KEY='surestone:visitor';
+function gateKnown(){
+  if(state.authUser)return true;
+  try{
+    if(localStorage.getItem('surestone:signedin')==='1')return true;
+    const v=JSON.parse(localStorage.getItem(GATE_KEY)||'null');if(v&&v.phone)return true;
+    const a=askedAny();return !!(a&&a.phone);
+  }catch{return false}
+}
+function gatePhone(raw){const d=String(raw||'').replace(/\D/g,'').replace(/^(91|0)(?=[6-9]\d{9}$)/,'');return /^[6-9]\d{9}$/.test(d)?d:''}
+function removePropertyGate(){const page=$('#propertyPage');if(!page)return;page.classList.remove('gated');$('.gate-card',page)?.remove()}
+function applyPropertyGate(){
+  const page=$('#propertyPage');
+  if(!page||!document.body.classList.contains('page-property'))return;
+  const h=homeById(state.currentHome);
+  if(!h||gateKnown()||!page.querySelector(':scope > :not(.gate-card)')||page.querySelector('.property-not-found')){removePropertyGate();return}
+  if($('.gate-card',page))return;
+  const card=document.createElement('form');card.className='gate-card';card.noValidate=true;
+  card.innerHTML=`${h.image?`<img class="gate-photo" src="${esc(h.image)}" alt="">`:''}<h2>See ${esc(h.crmName||h.title||'this home')} in full</h2><p>Photos, price, size and location. Just tell us who you are, it takes 5 seconds.</p>
+  <label class="form-row"><span>Your name</span><input name="name" autocomplete="name" placeholder="What should we call you?" required maxlength="80"></label>
+  <label class="form-row"><span>Mobile number</span><input name="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="10-digit mobile" required maxlength="16"></label>
+  <input name="website" tabindex="-1" autocomplete="off" class="gate-hp" aria-hidden="true">
+  <button class="gold-button" type="submit">See this home <span>→</span></button>
+  <p class="gate-small">Already have an account? <button type="button" class="gate-signin">Sign in</button></p>`;
+  const prev=state.profile||{};if(prev.name)card.elements.name.value=prev.name;if(prev.phone)card.elements.phone.value=prev.phone;
+  card.querySelector('.gate-signin').addEventListener('click',()=>openDialog('accountDialog'));
+  card.addEventListener('submit',async e=>{
+    e.preventDefault();const btn=card.querySelector('[type=submit]');
+    const name=card.elements.name.value.trim(),phone=gatePhone(card.elements.phone.value);
+    if(name.length<2){formError(card,'Please enter your name.');return}
+    if(!phone){formError(card,'Please enter a valid 10-digit mobile number.');return}
+    formError(card,'');btn.disabled=true;btn.firstChild.textContent='Opening… ';
+    const sent=await sendToCrm({name,mobile:phone,project:h.crmName||h.title||'',message:'Opened this home on the website',website:card.elements.website.value});
+    btn.disabled=false;btn.firstChild.textContent='See this home ';
+    if(!sent.ok){formError(card,sent.error);return}
+    try{localStorage.setItem(GATE_KEY,JSON.stringify({name,phone,at:Date.now()}));localStorage.setItem('surestone:asked',JSON.stringify({name,phone}))}catch{}
+    state.profile={...state.profile,name:state.profile?.name||name,phone:state.profile?.phone||phone};try{store.write('profile',state.profile)}catch{}
+    removePropertyGate();toast(`Thank you, ${name.split(/\s+/)[0]}. Enjoy the tour.`);
+  });
+  page.classList.add('gated');page.prepend(card);
+  setTimeout(()=>card.elements.name.focus({preventScroll:true}),50);
+}
+if(document.body.classList.contains('page-property')){
+  const page=$('#propertyPage');
+  if(page)new MutationObserver(()=>{if(!$('.gate-card',page)||page.querySelector('.property-not-found'))applyPropertyGate()}).observe(page,{childList:true});
+  applyPropertyGate();
+}
+document.addEventListener('surestone-auth-state',e=>{
+  try{if(e.detail)localStorage.setItem('surestone:signedin','1');else localStorage.removeItem('surestone:signedin')}catch{}
+  if(e.detail)removePropertyGate();
+});
