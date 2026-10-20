@@ -226,3 +226,4 @@ input:not([type=button]):not([type=submit]),textarea,[contenteditable=true]{curs
 .gate-card .gate-small{font-size:13.5px;text-align:center}
 .gate-card .gate-signin{background:none;border:0;padding:0;color:var(--gold);text-decoration:underline;cursor:pointer}
 .gate-card .form-error{color:#b3261e;font-size:14px;margin:0}
+#clientPhoneDialog .cp-later{display:block;margin:10px auto 0;background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer}

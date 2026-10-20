@@ -327,7 +327,7 @@ document.addEventListener('click',async e=>{
 async function registerClient(user,fresh){
   if(!user||!crmConfig())return;
   const tok=await window.sureStoneAuth?.getIdToken?.(!!fresh);if(!tok)return;
-  const res=await clientCall({action:'register',idToken:tok,name:state.profile.name||user.name||''});
+  const res=await clientCall({action:'register',idToken:tok,name:state.profile.name||user.name||'',phone:knownPhone()});
   if(!res)return;
   if(res.needEmailVerify){state.client=false;state.needEmailVerify=true;syncHeader();return}
   if(res.conflict){
@@ -337,7 +337,7 @@ async function registerClient(user,fresh){
     try{if(user.createdAt&&Date.now()-user.createdAt<5*60e3)await window.sureStoneAuth.deleteCurrentUser();else await window.sureStoneAuth.signOut()}catch{try{await window.sureStoneAuth.signOut()}catch{}}
     toast(`An account with this ${what} already exists. Please sign in with that account.`);return;
   }
-  if(res.ok){state.client=true;state.needEmailVerify=false;syncSaves(res.saves||[])}
+  if(res.ok){state.client=true;state.needEmailVerify=false;syncSaves(res.saves||[]);if(res.need_phone)askClientPhone(user)}
 }
 async function loadCrmListings(c){
   if(document.body.classList.contains('page-shortlist'))return loadShortlist(c);
@@ -537,3 +537,34 @@ document.addEventListener('surestone-auth-state',e=>{
   try{if(e.detail)localStorage.setItem('surestone:signedin','1');else localStorage.removeItem('surestone:signedin')}catch{}
   if(e.detail)removePropertyGate();
 });
+
+/* ---------- Signed in with email / Google: ask the mobile once, so the client shows as a lead in the CRM ---------- */
+function knownPhone(){
+  const pick=v=>gatePhone(v&&v.phone);
+  try{return pick(state.profile)||pick(JSON.parse(localStorage.getItem('surestone:visitor')||'null'))||pick(askedAny())||''}catch{return ''}
+}
+function askClientPhone(user){
+  const later='surestone:phone-later:'+(user&&user.uid||'');
+  try{if(Number(localStorage.getItem(later)||0)>Date.now())return}catch{}
+  if(document.getElementById('clientPhoneDialog'))return;
+  const d=document.createElement('dialog');d.className='dialog';d.id='clientPhoneDialog';
+  d.innerHTML=`<form class="dialog-shell contact-shell" novalidate><header class="dialog-head"><div><h2>One last thing.</h2><p>Your mobile number, so our team can help you with the homes you like.</p></div><button type="button" class="dialog-close" aria-label="Close">×</button></header>
+  <label class="form-row"><span>Mobile number</span><input name="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="10-digit mobile" required maxlength="16"></label>
+  <button class="gold-button contact-submit" type="submit">Save <span>→</span></button><button type="button" class="button-text cp-later">Maybe later</button></form>`;
+  document.body.appendChild(d);
+  const form=d.querySelector('form');
+  const skip=()=>{try{localStorage.setItem(later,String(Date.now()+3*864e5))}catch{}d.close();d.remove()};
+  d.querySelector('.dialog-close').addEventListener('click',skip);d.querySelector('.cp-later').addEventListener('click',skip);
+  form.addEventListener('submit',async e=>{
+    e.preventDefault();const phone=gatePhone(form.elements.phone.value),btn=form.querySelector('[type=submit]');
+    if(!phone){formError(form,'Please enter a valid 10-digit mobile number.');return}
+    formError(form,'');btn.disabled=true;
+    const tok=await window.sureStoneAuth?.getIdToken?.();
+    const res=tok?await clientCall({action:'register',idToken:tok,name:state.profile.name||user.name||'',phone}):null;
+    btn.disabled=false;
+    if(!res||!res.ok){formError(form,'Could not save right now. Please try again.');return}
+    state.profile={...state.profile,phone};try{store.write('profile',state.profile)}catch{}
+    d.close();d.remove();toast('Thank you. Our team will be in touch.');
+  });
+  d.showModal?d.showModal():d.setAttribute('open','');
+}
