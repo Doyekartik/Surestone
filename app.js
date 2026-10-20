@@ -16,7 +16,7 @@ function formError(form,msg){let p=form.querySelector('.form-error');if(!p){p=do
 function crmProjectToHome(p){
   const slug=String(p.name||'project').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,50)+'-'+String(p.id).slice(0,8);
   const loc=String(p.location||'').trim();const lp=loc.split(',').map(x=>x.trim()).filter(Boolean);const neighbourhood=(/^sector\b/i.test(lp[0]||'')&&lp[1]?lp[0]+', '+lp[1]:lp[0])||'Raipur';
-  const blr=/bangalore|bengaluru/i.test(loc);const city=blr?'Bangalore':'Raipur';let location=loc||'Raipur';if(blr){if(!/karnataka/i.test(location))location+=', Karnataka'}else{if(!/raipur/i.test(location))location+=', Raipur';if(!/chhattisgarh/i.test(location))location+=', Chhattisgarh'}
+  const blr=/bangalore|bengaluru|whitefield|electronic city|devanahalli|sarjapur|hebbal|yelahanka|koramangala|indiranagar|hsr layout|jp nagar|bannerghatta|kanakapura road|hennur|marathahalli|bellandur|kr puram|rajajinagar|malleshwaram|jayanagar|banashankari|thanisandra|budigere|hoskote|nelamangala/i.test(loc);const city=blr?'Bangalore':'Raipur';let location=loc||'Raipur';if(blr){if(!/karnataka/i.test(location))location+=', Karnataka'}else{if(!/raipur/i.test(location))location+=', Raipur';if(!/chhattisgarh/i.test(location))location+=', Chhattisgarh'}
   const t=String(p.type||'').toLowerCase();const type=/penthouse/.test(t)?'Penthouse':/villa|bungalow|row ?house|independent/.test(t)?'Villa':/plot|land/.test(t)?'Plot':/retail|shop|showroom|commercial/.test(t)?'Retail':/office/.test(t)?'Office':'Apartment';
   const deal=['lease','both'].includes(p.deal)?p.deal:'sale';
   const beds=(String(p.configs||'').match(/\d+(\.\d+)?/g)||[]).map(Number).filter(n=>n>0&&n<10);
@@ -379,7 +379,7 @@ async function registerClient(user,fresh){
     try{if(user.createdAt&&Date.now()-user.createdAt<5*60e3)await window.sureStoneAuth.deleteCurrentUser();else await window.sureStoneAuth.signOut()}catch{try{await window.sureStoneAuth.signOut()}catch{}}
     toast(`An account with this ${what} already exists. Please sign in with that account.`);return;
   }
-  if(res.ok){state.client=true;state.needEmailVerify=false;syncSaves(res.saves||[]);if(res.need_phone)askClientPhone(user)}
+  if(res.ok){state.client=true;state.needEmailVerify=false;syncSaves(res.saves||[]);if(res.need_phone&&!state.suppressPhoneAsk&&!document.querySelector('.gate-card,.id-form'))askClientPhone(user)}
 }
 async function loadCrmListings(c){
   if(document.body.classList.contains('page-shortlist'))return loadShortlist(c);
@@ -537,9 +537,10 @@ initFirebaseAuth();
 /* ---------- Visitors who are not signed in give their name and mobile once before seeing a home in full ---------- */
 const GATE_KEY='surestone:visitor';
 function gateKnown(){
-  if(state.authUser)return true;
+  // known = we have their mobile (typed, or verified by SMS). A Gmail alone is not enough.
+  if(state.authUser&&gatePhone(state.authUser.phone))return true;
+  if(state.profile&&gatePhone(state.profile.phone))return true;
   try{
-    if(localStorage.getItem('surestone:signedin')==='1')return true;
     const v=JSON.parse(localStorage.getItem(GATE_KEY)||'null');if(v&&v.phone)return true;
     const a=askedAny();return !!(a&&a.phone);
   }catch{return false}
@@ -563,7 +564,7 @@ if(document.body.classList.contains('page-property')){
 }
 document.addEventListener('surestone-auth-state',e=>{
   try{if(e.detail)localStorage.setItem('surestone:signedin','1');else localStorage.removeItem('surestone:signedin')}catch{}
-  if(e.detail)removePropertyGate();
+  if(e.detail&&gateKnown())removePropertyGate();
 });
 
 /* ---------- Signed in with email / Google: ask the mobile once, so the client shows as a lead in the CRM ---------- */
@@ -647,7 +648,9 @@ document.addEventListener('click',e=>{const a=e.target.closest('[data-contact-op
   const sec=$('#testimonials'),grid=$('#testimonialGrid'),c=crmConfig();if(!sec||!grid||!c)return;
   try{
     const r=await fetch(`${c.url}/api/site/testimonials?org=${encodeURIComponent(c.org)}`);const d=await r.json();
-    const list=(d.testimonials||[]).filter(x=>x&&x.body);if(!list.length)return;
+    const list=(d.testimonials||[]).filter(x=>x&&x.body);
+    sec.hidden=false;
+    if(!list.length){grid.innerHTML='<p class="t-empty">Bought or sold with us? We would love to hear how it went.</p>';return}
     grid.innerHTML=list.slice(0,9).map(x=>`<figure class="testimonial"><div class="t-stars" aria-label="${x.rating} out of 5">${'★'.repeat(x.rating||5)}${'☆'.repeat(5-(x.rating||5))}</div><blockquote>${esc(x.body)}</blockquote><figcaption><strong>${esc(x.name||'Our client')}</strong>${x.place||x.project?`<span>${esc([x.project,x.place].filter(Boolean).join(' · '))}</span>`:''}</figcaption></figure>`).join('');
     sec.hidden=false;if(location.hash==='#testimonials')sec.scrollIntoView();
   }catch{}
@@ -752,8 +755,15 @@ function identityForm({cls='id-form',photo,title,sub,button='Continue',project='
   f.innerHTML=`${photo?`<img class="gate-photo" src="${esc(photo)}" alt="">`:''}${title?`<h2>${esc(title)}</h2>`:''}${sub?`<p>${esc(sub)}</p>`:''}
   <label class="form-row"><span>Your name</span><input name="name" autocomplete="name" placeholder="What should we call you?" required maxlength="80" value="${esc(m.name)}"></label>
   <label class="form-row"><span>Mobile number</span><input name="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="10-digit mobile" required maxlength="16" value="${esc(m.phone)}"></label>
+  ${window.sureStoneAuth?.configured?`<div class="id-gmail"><span>Email <em>(optional)</em></span>${m.email?`<b class="id-gmail-on">${esc(m.email)} <i>✓</i></b>`:`<button type="button" class="me-btn me-google" data-id-google><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#4285F4" d="M43.6 24.5c0-1.4-.1-2.8-.4-4.1H24v7.8h11a9.4 9.4 0 0 1-4.1 6.2v5.1h6.7c3.9-3.6 6-8.8 6-15Z"/><path fill="#34A853" d="M24 44c5.5 0 10.1-1.8 13.5-4.8l-6.7-5.1c-1.8 1.2-4 2-6.8 2-5.2 0-9.6-3.5-11.2-8.2H5.9v5.3A20 20 0 0 0 24 44Z"/><path fill="#FBBC05" d="M12.8 27.9a12 12 0 0 1 0-7.7v-5.3H5.9a20 20 0 0 0 0 18.3l6.9-5.3Z"/><path fill="#EA4335" d="M24 12c3 0 5.6 1 7.7 3l5.8-5.8A19.3 19.3 0 0 0 24 4 20 20 0 0 0 5.9 14.9l6.9 5.3C14.4 15.5 18.8 12 24 12Z"/></svg> Add with Gmail</button>`}</div>`:''}
   <input name="website" tabindex="-1" autocomplete="off" class="gate-hp" aria-hidden="true">
   <button class="gold-button" type="submit">${esc(button)} <span>→</span></button>`;
+  f.querySelector('[data-id-google]')?.addEventListener('click',async ev=>{
+    const g=ev.currentTarget,box=g.parentElement;state.suppressPhoneAsk=true;g.disabled=true;
+    try{await window.sureStoneAuth.addGoogle();await new Promise(r=>setTimeout(r,300));const em=state.authUser?.email||'';
+      if(em){box.innerHTML=`<span>Email <em>(optional)</em></span><b class="id-gmail-on">${esc(em)} <i>✓</i></b>`;if(!f.elements.name.value.trim()&&state.authUser?.name)f.elements.name.value=state.authUser.name}else g.disabled=false}
+    catch(err){g.disabled=false;if(!/popup-closed|cancelled/.test(err.code||''))formError(f,err.message||'Could not add Gmail.')}
+  });
   f.addEventListener('submit',async e=>{
     e.preventDefault();const btn=f.querySelector('[type=submit]');
     const name=f.elements.name.value.trim(),phone=gatePhone(f.elements.phone.value);
@@ -765,6 +775,7 @@ function identityForm({cls='id-form',photo,title,sub,button='Continue',project='
     const sent=await sendToCrm({name,mobile:phone,email:me().email||undefined,project,message:message+(verified?' (number verified by SMS)':''),website:f.elements.website.value});
     btn.disabled=false;if(!sent.ok){formError(f,sent.error);return}
     saveMe(name,phone,verified?{verified:true}:{});
+    if(state.authUser){state.suppressPhoneAsk=false;try{registerClient(state.authUser)}catch{}}   // links the Gmail to this lead
     onDone&&onDone(name,phone);
   });
   return f;
@@ -801,3 +812,34 @@ function rememberMe(fields){
   if(!m.in||(m.phone===phone&&!m.name))saveMe(name,phone);
   try{renderMeBox()}catch{}
 }
+
+/* ---------- Testimonials: anyone can share their experience (an admin approves it in the CRM first) ---------- */
+(function shareExperience(){
+  const sec=$('#testimonials');if(!sec)return;
+  const head=sec.querySelector('.section-heading');
+  if(head&&!$('#shareExperience')){const b=document.createElement('button');b.type='button';b.id='shareExperience';b.className='button-outline';b.textContent='SHARE YOUR EXPERIENCE';head.appendChild(b);b.addEventListener('click',openShare)}
+  function openShare(){
+    const c=crmConfig();if(!c)return;let d=$('#shareDialog');if(d)d.remove();
+    const m=me();d=document.createElement('dialog');d.className='dialog';d.id='shareDialog';
+    d.innerHTML=`<form class="dialog-shell contact-shell" novalidate><header class="dialog-head"><div><h2>Share your experience.</h2><p>A few words about buying or selling with Sure Stone.</p></div><button type="button" class="dialog-close" aria-label="Close">×</button></header>
+    <div class="form-row"><span>Your rating</span><div class="rate-stars" role="radiogroup" aria-label="Rating">${[1,2,3,4,5].map(n=>`<button type="button" data-rate="${n}" aria-label="${n} star${n>1?'s':''}">★</button>`).join('')}</div></div>
+    <label class="form-row"><span>Your name</span><input name="name" maxlength="80" value="${esc(m.name)}"></label>
+    <label class="form-row"><span>Mobile number <em>(not shown on the website)</em></span><input name="phone" type="tel" inputmode="numeric" maxlength="16" value="${esc(m.phone)}"></label>
+    <label class="form-row"><span>City or area (optional)</span><input name="place" maxlength="80" placeholder="e.g. Atal Nagar, Raipur"></label>
+    <label class="form-row"><span>Your words</span><textarea name="text" rows="4" maxlength="1200" placeholder="How did we help you?"></textarea></label>
+    <button class="gold-button contact-submit" type="submit">SEND <span>→</span></button></form>`;
+    document.body.appendChild(d);d.querySelector('.dialog-close').addEventListener('click',()=>d.close());d.addEventListener('click',e=>{if(e.target===d)d.close()});d.showModal();
+    const form=d.querySelector('form');let rating=5;const paint=()=>form.querySelectorAll('[data-rate]').forEach(b=>b.classList.toggle('on',Number(b.dataset.rate)<=rating));paint();
+    form.addEventListener('click',e=>{const b=e.target.closest('[data-rate]');if(b){rating=Number(b.dataset.rate);paint()}});
+    form.addEventListener('submit',async e=>{
+      e.preventDefault();const btn=form.querySelector('[type=submit]'),name=form.elements.name.value.trim(),text=form.elements.text.value.trim(),phone=gatePhone(form.elements.phone.value);
+      if(name.length<2){formError(form,'Please enter your name.');return}
+      if(!phone){formError(form,'Please enter a valid 10-digit mobile number.');return}
+      if(text.length<10){formError(form,'Please write a few words (at least 10 letters).');return}
+      btn.disabled=true;formError(form,'');let ok=false,err='';
+      try{const r=await fetch(`${c.url}/api/site/testimonials`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:c.formKey,name,phone,place:form.elements.place.value,rating,text})});const j=await r.json();ok=j.ok;err=j.error||''}catch{err='Could not send. Check your internet and try again.'}
+      btn.disabled=false;if(!ok){formError(form,err||'Could not send. Please try again.');return}
+      form.innerHTML='<div class="contact-success"><span>✳</span><h3>Thank you.</h3><p>Your words mean a lot to us. They will show here once our team has seen them.</p></div>';
+    });
+  }
+})();
