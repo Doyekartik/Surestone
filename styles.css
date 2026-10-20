@@ -351,3 +351,4 @@ h1,h2,h3,.property-price,.detail-price{font-variant-numeric:lining-nums;font-fea
 #shareExperience{font-size:13px;letter-spacing:.08em}
 .t-empty{color:var(--muted);font-size:16px;margin:0}
 @media(min-width:701px){.page-home .hero{height:auto;min-height:640px;padding:64px 0 48px}}
+.vote-btn svg{width:15px;height:15px;stroke-width:1.8}

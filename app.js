@@ -304,7 +304,7 @@ function injectMoreFilters(){
   const first=body.querySelector('.form-row');first?first.insertAdjacentHTML('afterend',html):body.insertAdjacentHTML('afterbegin',html);
   const extras=$('#amenityChips')?.closest('.form-row');
   if(extras){extras.querySelector('span').textContent='Amenities';extras.insertAdjacentHTML('afterend','<div class="form-row" id="localityRow" hidden><span>Locality</span><div class="chip-set" id="localityChips"></div></div>')}
-  const sort=$('#sortFilter');if(sort&&!sort.querySelector('[value="votes"]'))sort.insertAdjacentHTML('beforeend','<option value="votes">Most upvoted</option>');
+  const sort=$('#sortFilter');if(sort&&!sort.querySelector('[value="votes"]'))sort.insertAdjacentHTML('beforeend','<option value="votes">Most liked</option>');
   document.addEventListener('click',e=>{const b=e.target.closest('[data-locality]');if(!b)return;const l=b.dataset.locality;state.localities=state.localities.includes(l)?state.localities.filter(x=>x!==l):[...state.localities,l];b.classList.toggle('selected',state.localities.includes(l))});
 }
 function refreshFilterChoices(){
@@ -318,16 +318,16 @@ function refreshFilterChoices(){
   const lr=$('#localityRow');if(lr){lr.hidden=locs.length<2;$('#localityChips').innerHTML=locs.map(l=>`<button type="button" data-locality="${esc(l)}" class="${state.localities.includes(l)?'selected':''}">${esc(l)}</button>`).join('')}
 }
 
-/* ---- Upvotes (one per browser) and sharing ---- */
+/* ---- Likes (one per browser) and sharing ---- */
 const voterId=(()=>{try{let v=localStorage.getItem('surestone:voter');if(!/^[a-f0-9]{32}$/.test(v||'')){v=[...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,'0')).join('');localStorage.setItem('surestone:voter',v)}return v}catch{return ''}})();
 const myVotes=new Set(store.read('votes',[]));
-const voteBtn=(h,big)=>h.crm?`<button type="button" class="vote-btn ${big?'big':''} ${myVotes.has(h.crmId)?'on':''}" data-vote="${esc(h.id)}" aria-pressed="${myVotes.has(h.crmId)}" aria-label="Upvote ${esc(h.title)}" title="${myVotes.has(h.crmId)?'You upvoted this':'Upvote'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 4.5 13H9v7h6v-7h4.5Z"/></svg><span>${h.votes||0}</span>${big?'<em>Upvote</em>':''}</button>`:'';
+const voteBtn=(h,big)=>h.crm?`<button type="button" class="vote-btn ${big?'big':''} ${myVotes.has(h.crmId)?'on':''}" data-vote="${esc(h.id)}" aria-pressed="${myVotes.has(h.crmId)}" aria-label="Like ${esc(h.title)}" title="${myVotes.has(h.crmId)?'You like this':'Like'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10v11H3V10h4Zm2 11V10l4.6-7.2c.3-.5 1-.7 1.6-.4 1 .5 1.5 1.6 1.2 2.7L15.6 9H20a2 2 0 0 1 2 2.3l-1.4 8A2 2 0 0 1 18.6 21H9Z"/></svg><span>${h.votes||0}</span>${big?`<em>${myVotes.has(h.crmId)?'Liked':'Like'}</em>`:''}</button>`:'';
 document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-vote]');if(!b)return;e.preventDefault();e.stopPropagation();
   const h=homeById(b.dataset.vote),c=crmConfig();if(!h||!c||!voterId)return;
   const on=!myVotes.has(h.crmId);
   on?myVotes.add(h.crmId):myVotes.delete(h.crmId);h.votes=Math.max(0,(h.votes||0)+(on?1:-1));store.write('votes',[...myVotes]);
-  $$(`[data-vote="${CSS.escape(h.id)}"]`).forEach(x=>{x.classList.toggle('on',on);x.setAttribute('aria-pressed',on);x.querySelector('span').textContent=h.votes});
+  $$(`[data-vote="${CSS.escape(h.id)}"]`).forEach(x=>{x.classList.toggle('on',on);x.setAttribute('aria-pressed',on);x.querySelector('span').textContent=h.votes;const em=x.querySelector('em');if(em)em.textContent=on?'Liked':'Like';x.title=on?'You like this':'Like'});
   try{const r=await fetch(`${c.url}/api/site/vote`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({org:c.org,project:h.crmId,voter:voterId,on})});const j=await r.json().catch(()=>({}));if(typeof j.votes==='number'){h.votes=j.votes;$$(`[data-vote="${CSS.escape(h.id)}"] span`).forEach(x=>x.textContent=j.votes)}}catch{}
 },true);
 document.addEventListener('click',async e=>{
