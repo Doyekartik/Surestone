@@ -61,7 +61,7 @@ function openDialog(id){const d=document.getElementById(id);if(d&&!d.open)d.show
 function closeDialog(id){const d=document.getElementById(id);if(d?.open)d.close()}
 function openAccount(tab='saved'){state.accountTab=tab;$$('.account-tab').forEach(button=>button.classList.toggle('active',button.dataset.accountTab===tab));renderAccountPanel();openDialog('accountDialog')}
 function openSellerEnquiry(){$('#contactSubline').textContent='Tell us about the home you would like to sell.';$('#contactHomeLabel').textContent='Where is your home?';$('#contactArea').value='';$('#contactForm').dataset.kind='sell';openDialog('contactDialog')}
-function syncHeader(){const count=state.saved.length;$('#savedCount').textContent=count;$('#profileSavedCount').textContent=count;$('#accountSavedBadge').textContent=count;$('#savedCount').dataset.empty=count===0?'true':'false';const p=state.profile;$('.account-avatar').textContent=(p.name||'S').trim().charAt(0).toUpperCase();$('#profileAvatar').textContent=(p.name||'G').trim().charAt(0).toUpperCase();$('#accountNameDisplay').textContent=p.name||'Your personal space';$('.account-button-copy strong').textContent=p.name?`Hello, ${p.name.split(/\s+/)[0]}`:'Your account';$('.profile-edit').innerHTML=p.name?'Edit your details <span></span>':'Add your details <span></span>';const signedIn=Boolean(state.authUser);$('.auth-methods').classList.toggle('hidden',signedIn);$('#googleSignOut').classList.toggle('hidden',!signedIn);if(signedIn&&state.needEmailVerify)showVerifyEmail($('#authMessage'),state.authUser.email);else $('#authMessage').textContent=signedIn?`Signed in as ${state.authUser.email||state.authUser.phone||state.authUser.name}`:'';renderAccountPanel()}
+function syncHeader(){const count=state.saved.length;$('#savedCount').textContent=count;$('#profileSavedCount').textContent=count;$('#accountSavedBadge').textContent=count;$('#savedCount').dataset.empty=count===0?'true':'false';const p=state.profile;$('.account-avatar').textContent=(p.name||'S').trim().charAt(0).toUpperCase();$('#profileAvatar').textContent=(p.name||'G').trim().charAt(0).toUpperCase();$('#accountNameDisplay').textContent=p.name||'Your personal space';$('.account-button-copy strong').textContent=p.name?`Hello, ${p.name.split(/\s+/)[0]}`:'Your account';$('.profile-edit').innerHTML=p.name?'Edit your details <span></span>':'Add your details <span></span>';const signedIn=Boolean(state.authUser);$('.auth-methods').classList.toggle('hidden',signedIn);$('#googleSignOut').classList.toggle('hidden',!hasLocalLogin());$('#headerLogout')?.classList.toggle('hidden',!hasLocalLogin());if(signedIn&&state.needEmailVerify)showVerifyEmail($('#authMessage'),state.authUser.email);else $('#authMessage').textContent=signedIn?`Signed in as ${state.authUser.email||state.authUser.phone||state.authUser.name}`:'';renderAccountPanel()}
 function filterHomes(){const search=state.location.toLowerCase().trim();let out=homes.filter(h=>{const modeOK=state.mode==='new'?!h.moveIn:true;if(!modeOK)return false;const areaOK=placeMatch(search,`${h.location} ${h.neighbourhood} ${h.city} ${h.title}`);if(!areaOK)return false;if(state.type==='lease'?!h.forLease:state.type!=='all'&&h.type!==state.type)return false;if(!budgetOK(state.price,h.price))return false;if(state.beds!=='all'){const n=Number(state.beds),list=h.bedsList&&h.bedsList.length?h.bedsList:(h.beds?[h.beds]:[]);if(!(n>=4?list.some(x=>x>=4):list.includes(n)))return false}if(state.developer!=='all'&&(h.developer||'')!==state.developer)return false;if(state.area&&h.area<state.area)return false;if(state.moveIn!=='all'&&h.moveIn!==(state.moveIn==='true'))return false;if(state.amenities.some(a=>!(h.filterTags||h.amenities).some(x=>String(x).toLowerCase()===a.toLowerCase())))return false;if(state.deal==='sale'&&h.deal==='lease')return false;if(state.deal==='lease'&&!h.forLease)return false;if(state.status!=='all'&&(h.availability||(h.moveIn?'Ready to move':'Under construction'))!==state.status)return false;if(state.localities.length&&!state.localities.includes(h.neighbourhood))return false;return true});if(state.sort==='votes')out.sort((a,b)=>(b.votes||0)-(a.votes||0));if(state.sort==='price-low')out.sort((a,b)=>a.price-b.price);if(state.sort==='price-high')out.sort((a,b)=>b.price-a.price);if(state.sort==='area-high')out.sort((a,b)=>b.area-a.area);return out}
 function renderListings(){const filtered=filterHomes(),shown=filtered.slice(0,state.visibleCount),grid=$('#propertyGrid');grid.innerHTML=shown.map(cardHTML).join('');$('#resultLabel').textContent=state.mode==='new'?'New projects to explore':'Homes to fall for';$('#emptyResults').classList.toggle('hidden',filtered.length!==0);$('#loadMore').classList.toggle('hidden',filtered.length<=state.visibleCount);$('#seeAllLink').textContent=filtered.length>state.visibleCount?'EXPLORE ALL HOMES ':'EXPLORE ALL HOMES ';updateListingHeading();updateFilterIndicators();renderPills()}
 function updateListingHeading(){const heading=$('#listingTypeHeading');if(!heading)return;const where=$('#listingWhere'),sub=$('#listingSub'),place=placeName(state.location);if(where)where.textContent=place?' in '+place+'.':'.';if(sub)sub.textContent=state.mode==='new'?'New launches and projects under construction. Book early for the best price and choice.':'Luxury homes and new projects in Raipur and Bangalore, picked with care.';if(state.mode==='new'&&state.type==='all'){heading.textContent='New projects';return}const plural={all:'Featured homes',Apartment:'Apartments',Villa:'Villas',Penthouse:'Penthouses',Plot:'Plots',Retail:'Retail spaces',lease:'Places for lease'};heading.textContent=plural[state.type]||`${state.type}s`}
@@ -693,13 +693,39 @@ function greeting(){const h=new Date().getHours();return h<5?'Good evening':h<12
 function paintGreeting(){$$('.account-button-copy>span:first-child').forEach(el=>{el.textContent=greeting()})}
 paintGreeting();setInterval(paintGreeting,60000);
 
-/* ---------- Log out: visible in the header and in the account window ---------- */
+/* ---------- Log out: for everyone "logged in" on this device ----------
+   A visitor counts as logged in once they gave their name and mobile (property gate, brochure, forms)
+   or signed in with Google / phone. Log out forgets all of it on this device. */
+function hasLocalLogin(){
+  if(state.authUser)return true;
+  try{const v=JSON.parse(localStorage.getItem('surestone:visitor')||'null');if(v&&v.phone)return true}catch{}
+  const a=askedAny();if(a&&a.phone)return true;
+  return !!(state.profile&&(state.profile.phone||state.profile.name));
+}
+async function logOutEverywhere(){
+  try{if(state.authUser)await window.sureStoneAuth?.signOut?.()}catch{}
+  try{Object.keys(localStorage).filter(k=>k.startsWith('surestone:')&&k!=='surestone:voter'&&k!=='surestone:votes').forEach(k=>localStorage.removeItem(k))}catch{}
+  try{sessionStorage.setItem('surestone:loggedout','1')}catch{}
+  location.reload();
+}
+function syncLogout(){
+  const on=hasLocalLogin();
+  $('#headerLogout')?.classList.toggle('hidden',!on);
+  const so=$('#googleSignOut');if(so){so.textContent='Log out';so.classList.toggle('hidden',!on)}
+}
 (function logoutButtons(){
-  const so=$('#googleSignOut');if(so)so.textContent='Log out';
-  const acts=$('.header-actions');if(!acts||$('#headerLogout'))return;
-  const b=document.createElement('button');b.type='button';b.id='headerLogout';b.className='header-logout hidden';b.textContent='Log out';
-  b.addEventListener('click',()=>{const x=$('#googleSignOut');if(x)x.click();else window.sureStoneAuth?.signOut?.()});
-  const acc=$('#accountOpen');acc?acc.after(b):acts.appendChild(b);
-  const sync=()=>b.classList.toggle('hidden',!state.authUser);
-  document.addEventListener('surestone-auth-state',()=>setTimeout(sync,0));sync();
+  const acts=$('.header-actions');
+  if(acts&&!$('#headerLogout')){
+    const b=document.createElement('button');b.type='button';b.id='headerLogout';b.className='header-logout hidden';b.textContent='Log out';
+    b.addEventListener('click',logOutEverywhere);
+    const acc=$('#accountOpen');acc?acc.after(b):acts.appendChild(b);
+  }
+  // the Log out button in the account window does the same (also when they never used Google / phone)
+  $('#googleSignOut')?.addEventListener('click',e=>{e.stopImmediatePropagation();e.preventDefault();logOutEverywhere()},true);
+  document.addEventListener('surestone-auth-state',()=>setTimeout(syncLogout,0));
+  document.addEventListener('click',()=>setTimeout(syncLogout,50));
+  document.addEventListener('submit',()=>setTimeout(syncLogout,1500));
+  $('#accountDialog')?.addEventListener('toggle',syncLogout);
+  setInterval(syncLogout,3000);syncLogout();
+  try{if(sessionStorage.getItem('surestone:loggedout')){sessionStorage.removeItem('surestone:loggedout');setTimeout(()=>toast('You are logged out. Your details were removed from this device.'),400)}}catch{}
 })();
