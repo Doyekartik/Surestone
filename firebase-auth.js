@@ -12,7 +12,8 @@ import {
   updateProfile,
   RecaptchaVerifier,
   signInWithPhoneNumber,
-  sendEmailVerification
+  sendEmailVerification,
+  linkWithPopup
 } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import { firebaseConfig } from './firebase-config.js';
 
@@ -24,6 +25,7 @@ if (!configured) {
   window.sureStoneAuth = {
     configured: false,
     async signIn() { throw new Error('Firebase is not configured yet. Add your Firebase web app settings to firebase-config.js.'); },
+    async addGoogle() { throw new Error('Google is not set up yet.'); },
     async signInEmail() { throw new Error('Firebase is not configured yet.'); },
     async createEmailAccount() { throw new Error('Firebase is not configured yet.'); },
     async sendPhoneCode() { throw new Error('Firebase is not configured yet.'); },
@@ -45,8 +47,27 @@ if (!configured) {
   let phoneConfirmation = null;
   provider.setCustomParameters({ prompt: 'select_account' });
 
+  const detailOf = user => user ? {
+    uid: user.uid, name: user.displayName || '', email: user.email || '',
+    phone: user.phoneNumber || '', photoURL: user.photoURL || '',
+    emailVerified: user.emailVerified, createdAt: Date.parse(user.metadata?.creationTime || '') || 0,
+    passwordAccount: user.providerData.some(p => p.providerId === 'password')
+  } : null;
   window.sureStoneAuth = {
     configured: true,
+    // Add a Gmail to the person already on this device (keeps their verified mobile on the same account).
+    async addGoogle() {
+      if (auth.currentUser) {
+        try {
+          const r = await linkWithPopup(auth.currentUser, provider);
+          document.dispatchEvent(new CustomEvent('surestone-auth-state', { detail: detailOf(r.user) }));
+          return r;
+        } catch (error) {
+          if (error.code !== 'auth/credential-already-in-use' && error.code !== 'auth/provider-already-linked') throw error;
+        }
+      }
+      return signInWithPopup(auth, provider);
+    },
     async signIn() {
       // Firebase recommends redirect sign-in on mobile; desktop uses a popup.
       if (matchMedia('(max-width: 700px)').matches) return signInWithRedirect(auth, provider);
@@ -96,12 +117,7 @@ if (!configured) {
     document.dispatchEvent(new CustomEvent('surestone-auth-error', { detail: error }));
   });
   onAuthStateChanged(auth, user => {
-    document.dispatchEvent(new CustomEvent('surestone-auth-state', { detail: user ? {
-      uid: user.uid, name: user.displayName || '', email: user.email || '',
-      phone: user.phoneNumber || '', photoURL: user.photoURL || '',
-      emailVerified: user.emailVerified, createdAt: Date.parse(user.metadata?.creationTime || '') || 0,
-      passwordAccount: user.providerData.some(p => p.providerId === 'password')
-    } : null }));
+    document.dispatchEvent(new CustomEvent('surestone-auth-state', { detail: detailOf(user) }));
   });
   document.dispatchEvent(new CustomEvent('surestone-auth-ready'));
 }

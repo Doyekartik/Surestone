@@ -240,13 +240,13 @@ async function loadShortlist(c){
   // The homes open only for someone signed in. The CRM checks who it is: the client they were picked for sees
   // their own page; anyone the link was forwarded to sees the homes under their own name.
   if(!state.authKnown){box.innerHTML='<div class="property-not-found"><h1>Loading the homes picked for you…</h1></div>';return}
-  if(!state.authUser){
-    box.innerHTML=`<div class="sl-login"><span class="detail-verified">Private link</span><h1>Sign in to see these homes.</h1><p>These homes were picked by our team. Please sign in (or sign up, it takes a minute) so we know it is you.</p><div class="sl-login-actions"><button type="button" class="gold-button" data-sl-google>Continue with Google</button><button type="button" class="button-outline" data-auth-open="phone">Sign in with mobile number</button></div></div>`;
-    box.querySelector('[data-sl-google]').addEventListener('click',()=>window.sureStoneAuth?.signIn?.().catch(err=>toast(err.message||'Google sign-in could not be completed.')));
+  if(!state.authUser&&!me().in){
+    box.innerHTML='<div class="sl-login"><span class="detail-verified">Private link</span><h1>Homes picked for you.</h1></div>';
+    box.querySelector('.sl-login').appendChild(identityForm({cls:'id-form sl-id',sub:'Please tell us who you are: your name and the mobile number you gave our team.',button:'See my homes',message:'Opened the homes link the team sent',onDone:()=>loadShortlist(c)}));
     return;
   }
   box.innerHTML='<div class="property-not-found"><h1>Loading the homes picked for you…</h1></div>';
-  let d;try{const idToken=await window.sureStoneAuth.getIdToken();const r=await fetch(`${c.url}/api/site/shortlist`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t,idToken,key:c.formKey,action:'load'}),cache:'no-store'});d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)return dead(d.error||'This link is not active any more.')}catch{return dead('Could not load the homes. Check your internet and refresh.')}
+  let d;try{const idToken=await window.sureStoneAuth.getIdToken();const r=await fetch(`${c.url}/api/site/shortlist`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t,idToken,key:c.formKey,action:'load',name:me().name,phone:me().phone}),cache:'no-store'});d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)return dead(d.error||'This link is not active any more.')}catch{return dead('Could not load the homes. Check your internet and refresh.')}
   const list=(d.projects||[]).map(crmProjectToHome);
   homes.splice(0,homes.length,...list);
   state.shortlist={t,reactions:d.reactions||{},owner:!!d.owner};
@@ -258,7 +258,7 @@ async function loadShortlist(c){
   <p class="detail-note">Prices, sizes and availability can change. Please confirm the latest details with ${esc(agent||'our team')}.</p></div>`;
   const tomorrow=new Date();tomorrow.setDate(tomorrow.getDate()+1);const day=tomorrow.toISOString().split('T')[0];
   $$('.sl-day').forEach(i=>{i.min=day;i.value=day});
-  if(d.owner)setTimeout(async()=>{try{const idToken=await window.sureStoneAuth.getIdToken();fetch(`${c.url}/api/site/shortlist`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t,idToken,action:'seen'})})}catch{}},1500);
+  if(d.owner)setTimeout(async()=>{try{const idToken=await window.sureStoneAuth.getIdToken();fetch(`${c.url}/api/site/shortlist`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t,idToken,action:'seen',name:me().name,phone:me().phone})})}catch{}},1500);
 }
 document.addEventListener('surestone-auth-state',e=>{
   const first=!state.authKnown;state.authKnown=true;const uid=e.detail?.uid||'';
@@ -272,7 +272,7 @@ document.addEventListener('click',async e=>{
   const reaction=b.dataset.react;let when=null;
   if(reaction==='visit'){const day=card.querySelector('.sl-day').value,time=card.querySelector('.sl-time').value;if(!day){msg.textContent='Please pick a day.';return}when=new Date(`${day}T${time}:00`).toISOString()}
   b.disabled=true;msg.textContent='';
-  let ok=false,j={};try{const idToken=await window.sureStoneAuth.getIdToken();const r=await fetch(`${c.url}/api/site/shortlist`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t:state.shortlist.t,idToken,key:c.formKey,action:'react',project:h.crmId,reaction,when})});j=await r.json().catch(()=>({}));ok=j.ok}catch{}
+  let ok=false,j={};try{const idToken=await window.sureStoneAuth.getIdToken();const r=await fetch(`${c.url}/api/site/shortlist`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t:state.shortlist.t,idToken,key:c.formKey,action:'react',project:h.crmId,reaction,when,name:me().name,phone:me().phone})});j=await r.json().catch(()=>({}));ok=j.ok}catch{}
   if(!ok&&j.needPhone){b.disabled=false;msg.textContent='Please add your mobile number first.';askClientPhone(state.authUser);return}
   b.disabled=false;
   if(!ok){msg.textContent='Could not send. Please try again, or call us.';return}
@@ -474,7 +474,7 @@ function initFirebaseAuth(){
   });
   document.addEventListener('surestone-auth-state',event=>{
     const user=event.detail;state.authUser=user;
-    if(user){state.profile={...state.profile,name:user.name||state.profile.name||'',email:user.email||state.profile.email||'',phone:user.phone||state.profile.phone||''};store.write('profile',state.profile)}
+    if(user){state.profile={...state.profile,name:state.profile.name||user.name||'',email:user.email||state.profile.email||'',phone:state.profile.phone||user.phone||''};store.write('profile',state.profile)}
     if(user){state.needEmailVerify=Boolean(user.passwordAccount&&!user.emailVerified&&!user.phone);registerClient(user)}else{state.client=false;state.needEmailVerify=false}
     syncHeader();signIn.disabled=false;
   });
@@ -539,28 +539,7 @@ function applyPropertyGate(){
   const h=homeById(state.currentHome);
   if(!h||gateKnown()||!page.querySelector(':scope > :not(.gate-card)')||page.querySelector('.property-not-found')){removePropertyGate();return}
   if($('.gate-card',page))return;
-  const card=document.createElement('form');card.className='gate-card';card.noValidate=true;
-  card.innerHTML=`${h.image?`<img class="gate-photo" src="${esc(h.image)}" alt="">`:''}<h2>See ${esc(h.crmName||h.title||'this home')} in full</h2><p>Photos, price, size and location. Just tell us who you are, it takes 5 seconds.</p>
-  <label class="form-row"><span>Your name</span><input name="name" autocomplete="name" placeholder="What should we call you?" required maxlength="80"></label>
-  <label class="form-row"><span>Mobile number</span><input name="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="10-digit mobile" required maxlength="16"></label>
-  <input name="website" tabindex="-1" autocomplete="off" class="gate-hp" aria-hidden="true">
-  <button class="gold-button" type="submit">See this home <span>→</span></button>
-  <p class="gate-small">Already have an account? <button type="button" class="gate-signin">Sign in</button></p>`;
-  const prev=state.profile||{};if(prev.name)card.elements.name.value=prev.name;if(prev.phone)card.elements.phone.value=prev.phone;
-  card.querySelector('.gate-signin').addEventListener('click',()=>openDialog('accountDialog'));
-  card.addEventListener('submit',async e=>{
-    e.preventDefault();const btn=card.querySelector('[type=submit]');
-    const name=card.elements.name.value.trim(),phone=gatePhone(card.elements.phone.value);
-    if(name.length<2){formError(card,'Please enter your name.');return}
-    if(!phone){formError(card,'Please enter a valid 10-digit mobile number.');return}
-    formError(card,'');btn.disabled=true;btn.firstChild.textContent='Opening… ';
-    const sent=await sendToCrm({name,mobile:phone,project:h.crmName||h.title||'',message:'Opened this home on the website',website:card.elements.website.value});
-    btn.disabled=false;btn.firstChild.textContent='See this home ';
-    if(!sent.ok){formError(card,sent.error);return}
-    try{localStorage.setItem(GATE_KEY,JSON.stringify({name,phone,at:Date.now()}));localStorage.setItem('surestone:asked',JSON.stringify({name,phone}))}catch{}
-    state.profile={...state.profile,name:state.profile?.name||name,phone:state.profile?.phone||phone};try{store.write('profile',state.profile)}catch{}
-    removePropertyGate();toast(`Thank you, ${name.split(/\s+/)[0]}. Enjoy the tour.`);
-  });
+  const card=identityForm({cls:'gate-card',photo:h.image,title:`See ${h.crmName||h.title||'this home'} in full`,sub:'Photos, price, size and location. Just tell us who you are, it takes 5 seconds.',button:'See this home',project:h.crmName||h.title||'',message:'Opened this home on the website',onDone:name=>{removePropertyGate();toast(`Thank you, ${name.split(/\s+/)[0]}. Enjoy the tour.`)}});
   page.classList.add('gated');page.prepend(card);
   setTimeout(()=>card.elements.name.focus({preventScroll:true}),50);
 }
@@ -728,4 +707,74 @@ function syncLogout(){
   $('#accountDialog')?.addEventListener('toggle',syncLogout);
   setInterval(syncLogout,3000);syncLogout();
   try{if(sessionStorage.getItem('surestone:loggedout')){sessionStorage.removeItem('surestone:loggedout');setTimeout(()=>toast('You are logged out. Your details were removed from this device.'),400)}}catch{}
+})();
+
+/* =====================================================================================================
+   ONE simple way in: name + mobile (that is the "login"). Optional later: verify the mobile by SMS code
+   (only when the company turns on "Verify clients' mobile" in the CRM) and add a Gmail.
+   ===================================================================================================== */
+function me(){let v=null;try{v=JSON.parse(localStorage.getItem('surestone:visitor')||'null')}catch{}
+  const p=state.profile||{},u=state.authUser||{};
+  const phone=gatePhone(v?.phone)||gatePhone(p.phone)||gatePhone(u.phone)||'';
+  return{name:(v?.name||p.name||u.name||'').trim(),phone,email:u.email||p.email||'',emailVerified:!!(u.email&&u.emailVerified!==false),phoneVerified:!!(v?.verified||(u.phone&&gatePhone(u.phone)===phone)),in:!!phone}}
+function saveMe(name,phone,extra={}){try{const v=JSON.parse(localStorage.getItem('surestone:visitor')||'null')||{};localStorage.setItem('surestone:visitor',JSON.stringify({...v,name,phone,at:Date.now(),...extra}));localStorage.setItem('surestone:asked',JSON.stringify({name,phone}))}catch{}
+  state.profile={...state.profile,name,phone};try{store.write('profile',state.profile)}catch{};try{syncHeader()}catch{}}
+const needOtp=()=>!!(state.crmContact?.verify&&window.sureStoneAuth?.configured);
+/* SMS code step inside any form. Resolves true when the number is verified. */
+function otpStep(form,phone){return new Promise(resolve=>{
+  const id='otp'+Math.random().toString(36).slice(2,8);
+  const box=document.createElement('div');box.className='otp-box';
+  box.innerHTML=`<p class="otp-note">We sent a 6-digit code by SMS to <b>${esc(phone)}</b>.</p><div id="${id}"></div><label class="form-row"><span>Code</span><input class="otp-code" inputmode="numeric" maxlength="6" placeholder="6-digit code" autocomplete="one-time-code"></label><button type="button" class="gold-button otp-ok">Verify <span>→</span></button><button type="button" class="button-text otp-change">Change number</button><p class="otp-status" role="status"></p>`;
+  form.querySelectorAll(':scope > :not(.otp-box):not(h2):not(p):not(img)').forEach(el=>el.hidden=true);form.appendChild(box);
+  const st=box.querySelector('.otp-status'),done=ok=>{box.remove();form.querySelectorAll('[hidden]').forEach(el=>{if(!el.classList.contains('gate-hp'))el.hidden=false});resolve(ok)};
+  box.querySelector('.otp-change').addEventListener('click',()=>{try{window.sureStoneAuth.clearPhoneVerifier()}catch{};done(false)});
+  st.textContent='Sending the code…';
+  window.sureStoneAuth.sendPhoneCode(toE164(phone),id).then(()=>{st.textContent='';box.querySelector('.otp-code').focus()}).catch(err=>{st.textContent=/operation-not-allowed|billing/.test(err.code||'')?'SMS check is not switched on yet.':/too-many|quota/.test(err.code||'')?'Too many codes right now. Please try later.':/invalid-phone/.test(err.code||'')?'This number does not look right.':'Could not send the code. Please try again.'});
+  box.querySelector('.otp-ok').addEventListener('click',async()=>{const code=box.querySelector('.otp-code').value.replace(/\D/g,'');if(code.length!==6){st.textContent='Please type the 6-digit code.';return}
+    st.textContent='Checking…';try{await window.sureStoneAuth.confirmPhoneCode(code);done(true)}catch(err){st.textContent=/invalid-verification-code/.test(err.code||'')?'That code is not right.':/code-expired/.test(err.code||'')?'The code expired. Tap Change number and try again.':'Could not check the code. Please try again.'}});
+})}
+/* The one form: name + mobile (+ SMS code when switched on). Saves the lead in the CRM. */
+function identityForm({cls='id-form',photo,title,sub,button='Continue',project='',message='Logged in on the website',onDone}){
+  const f=document.createElement('form');f.className=cls;f.noValidate=true;const m=me();
+  f.innerHTML=`${photo?`<img class="gate-photo" src="${esc(photo)}" alt="">`:''}${title?`<h2>${esc(title)}</h2>`:''}${sub?`<p>${esc(sub)}</p>`:''}
+  <label class="form-row"><span>Your name</span><input name="name" autocomplete="name" placeholder="What should we call you?" required maxlength="80" value="${esc(m.name)}"></label>
+  <label class="form-row"><span>Mobile number</span><input name="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="10-digit mobile" required maxlength="16" value="${esc(m.phone)}"></label>
+  <input name="website" tabindex="-1" autocomplete="off" class="gate-hp" aria-hidden="true">
+  <button class="gold-button" type="submit">${esc(button)} <span>→</span></button>`;
+  f.addEventListener('submit',async e=>{
+    e.preventDefault();const btn=f.querySelector('[type=submit]');
+    const name=f.elements.name.value.trim(),phone=gatePhone(f.elements.phone.value);
+    if(name.length<2){formError(f,'Please enter your name.');return}
+    if(!phone){formError(f,'Please enter a valid 10-digit mobile number.');return}
+    formError(f,'');let verified=me().phoneVerified&&me().phone===phone;
+    if(needOtp()&&!verified){if(!(await otpStep(f,phone)))return;verified=true}
+    btn.disabled=true;
+    const sent=await sendToCrm({name,mobile:phone,email:me().email||undefined,project,message:message+(verified?' (number verified by SMS)':''),website:f.elements.website.value});
+    btn.disabled=false;if(!sent.ok){formError(f,sent.error);return}
+    saveMe(name,phone,verified?{verified:true}:{});
+    onDone&&onDone(name,phone);
+  });
+  return f;
+}
+/* Account window: who you are, add Gmail, verify mobile, log out. Replaces the old sign-in buttons. */
+function renderMeBox(){
+  const host=$('#accountDialog .auth-actions');if(!host)return;
+  let box=$('#meBox');if(!box){box=document.createElement('div');box.id='meBox';host.before(box)}
+  const m=me();
+  if(!m.in){box.innerHTML='';box.appendChild(identityForm({cls:'id-form me-form',title:'',sub:'Tell us who you are. Just your name and mobile number.',button:'Continue',onDone:()=>{renderMeBox();toast('Welcome! You can now see every home in full.')}}));return}
+  const canVerify=needOtp()&&!m.phoneVerified,google=window.sureStoneAuth?.configured;
+  box.innerHTML=`<div class="me-rows">
+    <div class="me-row"><span>Mobile</span><b>${esc(m.phone)}</b>${m.phoneVerified?'<em class="me-ok">Verified</em>':canVerify?'<button type="button" class="me-btn" data-me-verify>Verify by SMS</button>':''}</div>
+    <div class="me-row"><span>Email</span>${m.email?`<b>${esc(m.email)}</b><em class="me-ok">Added with Google</em>`:google?'<button type="button" class="me-btn me-google" data-me-google><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#4285F4" d="M43.6 24.5c0-1.4-.1-2.8-.4-4.1H24v7.8h11a9.4 9.4 0 0 1-4.1 6.2v5.1h6.7c3.9-3.6 6-8.8 6-15Z"/><path fill="#34A853" d="M24 44c5.5 0 10.1-1.8 13.5-4.8l-6.7-5.1c-1.8 1.2-4 2-6.8 2-5.2 0-9.6-3.5-11.2-8.2H5.9v5.3A20 20 0 0 0 24 44Z"/><path fill="#FBBC05" d="M12.8 27.9a12 12 0 0 1 0-7.7v-5.3H5.9a20 20 0 0 0 0 18.3l6.9-5.3Z"/><path fill="#EA4335" d="M24 12c3 0 5.6 1 7.7 3l5.8-5.8A19.3 19.3 0 0 0 24 4 20 20 0 0 0 5.9 14.9l6.9 5.3C14.4 15.5 18.8 12 24 12Z"/></svg> Add your Gmail (optional)</button>':'<span class="me-muted">Not added</span>'}</div>
+  </div><p class="me-status" role="status"></p>`;
+  const st=box.querySelector('.me-status');
+  box.querySelector('[data-me-google]')?.addEventListener('click',async()=>{st.textContent='Opening Google…';try{await window.sureStoneAuth.addGoogle();st.textContent='Gmail added. Thank you.'}catch(err){st.textContent=/popup-closed|cancelled/.test(err.code||'')?'':(err.message||'Could not add Gmail.')}});
+  box.querySelector('[data-me-verify]')?.addEventListener('click',async()=>{const f=document.createElement('form');f.className='id-form';box.appendChild(f);const ok=await otpStep(f,m.phone);f.remove();if(ok){saveMe(m.name,m.phone,{verified:true});sendToCrm({name:m.name,mobile:m.phone,message:'Verified their mobile number by SMS on the website'});renderMeBox();toast('Number verified.')}});
+}
+(function initMeBox(){
+  if(!$('#accountDialog'))return;
+  renderMeBox();
+  document.addEventListener('surestone-auth-state',()=>setTimeout(renderMeBox,0));
+  $('#accountDialog').addEventListener('toggle',renderMeBox);
+  $('#accountOpen')?.addEventListener('click',()=>setTimeout(renderMeBox,0));
 })();

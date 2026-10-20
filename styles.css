@@ -313,3 +313,25 @@ h1,h2,h3,.property-price,.detail-price{font-variant-numeric:lining-nums;font-fea
 @media(max-width:700px){.header-logout{padding:7px 9px;font-size:11px;margin-left:4px}}
 #googleSignOut{font-size:12.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;min-height:36px;padding:0 14px}
 .hero-word-window{min-width:max-content}
+
+/* One simple way in: name + mobile. Account window shows who you are, optional Gmail, optional SMS check. */
+#accountDialog .auth-methods{display:none!important}
+#meBox{margin:4px 0 14px}
+.me-form{display:flex;flex-direction:column;gap:10px}
+.me-form>p{margin:0;color:var(--muted)}
+.me-rows{display:flex;flex-direction:column;border:1px solid var(--line);background:#fff}
+.me-row{display:flex;align-items:center;gap:12px;padding:12px 14px;flex-wrap:wrap}
+.me-row+.me-row{border-top:1px solid var(--line)}
+.me-row>span{width:64px;color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.06em}
+.me-row b{font-weight:600}
+.me-ok{font-style:normal;font-size:12px;color:#2f7a4a;background:#e8f4ec;padding:3px 8px;border-radius:999px}
+.me-muted{color:var(--faint)}
+.me-btn{display:inline-flex;align-items:center;gap:8px;border:1px solid #e1d9cb;background:#fff;padding:8px 12px;font:600 13px var(--sans);cursor:pointer}
+.me-btn:hover{border-color:var(--gold)}
+.me-btn svg{width:16px;height:16px}
+.me-status{margin:6px 0 0;color:var(--muted);font-size:13.5px;min-height:1em}
+.otp-box{display:flex;flex-direction:column;gap:10px}
+.otp-note,.otp-status{margin:0;color:var(--muted);font-size:14px}
+.sl-id{width:min(440px,100%);text-align:left;display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.sl-id>p{margin:0;color:var(--muted)}
+#accountDialog #authMessage:not(:has(button)){display:none}
