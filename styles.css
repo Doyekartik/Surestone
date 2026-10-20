@@ -296,3 +296,13 @@ h1,h2,.detail-price,.property-price{font-weight:600}
 .resched-form .form-error{flex-basis:100%;color:#b3261e;margin:0}
 .visit-card{flex-wrap:wrap}
 .unlock-note{color:var(--muted);font-size:14px}
+
+/* Card: name first, then price and status on one line; normal (lining) numbers everywhere */
+body{font-variant-numeric:lining-nums}
+h1,h2,h3,.property-price,.detail-price{font-variant-numeric:lining-nums;font-feature-settings:"lnum" 1}
+.property-card-main .property-title{font-family:var(--serif);font-size:22px;font-weight:600;line-height:1.25;margin:0 0 6px;color:#24211c}
+.property-card-main .property-headline{flex-direction:row;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:8px}
+.property-card-main .property-price{font-family:var(--sans);font-size:19px;font-weight:700;letter-spacing:0;color:#8a6a3c}
+.property-card-main .property-price-label{font-size:10.5px;padding:3px 9px}
+.property-card-main .property-location{font-size:13.5px}
+@media(max-width:700px){.property-card-main .property-title{font-size:20px}.property-card-main .property-price{font-size:17px}}
