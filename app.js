@@ -839,7 +839,7 @@ function rememberMe(fields){
       btn.disabled=true;formError(form,'');let ok=false,err='';
       try{const r=await fetch(`${c.url}/api/site/testimonials`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:c.formKey,name,phone,place:form.elements.place.value,rating,text})});const j=await r.json();ok=j.ok;err=j.error||''}catch{err='Could not send. Check your internet and try again.'}
       btn.disabled=false;if(!ok){formError(form,err||'Could not send. Please try again.');return}
-      form.innerHTML='<div class="contact-success"><span>✳</span><h3>Thank you.</h3><p>Your words mean a lot to us. They will show here once our team has seen them.</p></div>';
+      form.innerHTML='<div class="contact-success"><span>✳</span><h3>Thank you.</h3><p>Your words mean a lot to us. Your review will show here shortly.</p></div>';
     });
   }
 })();
