@@ -650,8 +650,8 @@ document.addEventListener('click',e=>{const a=e.target.closest('[data-contact-op
     const r=await fetch(`${c.url}/api/site/testimonials?org=${encodeURIComponent(c.org)}`);const d=await r.json();
     const list=(d.testimonials||[]).filter(x=>x&&x.body);
     sec.hidden=false;
-    if(!list.length){grid.innerHTML='<p class="t-empty">Bought or sold with us? We would love to hear how it went.</p>';return}
-    grid.innerHTML=list.slice(0,9).map(x=>`<figure class="testimonial"><div class="t-stars" aria-label="${x.rating} out of 5">${'★'.repeat(x.rating||5)}${'☆'.repeat(5-(x.rating||5))}</div><blockquote>${esc(x.body)}</blockquote><figcaption><strong>${esc(x.name||'Our client')}</strong>${x.place||x.project?`<span>${esc([x.project,x.place].filter(Boolean).join(' · '))}</span>`:''}</figcaption></figure>`).join('');
+    if(!list.length){grid.innerHTML='<p class="t-empty">No reviews yet. Bought or sold with us? We would love to hear how it went.</p>';return}
+    grid.innerHTML=list.slice(0,document.body.classList.contains('page-testimonials')?48:9).map(x=>`<figure class="testimonial"><div class="t-stars" aria-label="${x.rating} out of 5">${'★'.repeat(x.rating||5)}${'☆'.repeat(5-(x.rating||5))}</div><blockquote>${esc(x.body)}</blockquote><figcaption><strong>${esc(x.name||'Our client')}</strong>${x.place||x.project?`<span>${esc([x.project,x.place].filter(Boolean).join(' · '))}</span>`:''}</figcaption></figure>`).join('');
     sec.hidden=false;if(location.hash==='#testimonials')sec.scrollIntoView();
   }catch{}
 })();
@@ -842,4 +842,10 @@ function rememberMe(fields){
       form.innerHTML='<div class="contact-success"><span>✳</span><h3>Thank you.</h3><p>Your words mean a lot to us. Your review will show here shortly.</p></div>';
     });
   }
+})();
+
+/* Home page: link to the full reviews page; reviews page: the nav item is marked */
+(function reviewsLinks(){const sec=$('#testimonials');if(!sec)return;
+  if(!document.body.classList.contains('page-testimonials')){const head=sec.querySelector('.section-heading');if(head&&!$('#allReviews')){const a=document.createElement('a');a.id='allReviews';a.className='text-link';a.href='testimonials.html';a.innerHTML='SEE ALL REVIEWS <span></span>';head.appendChild(a)}}
+  else{$$('.main-nav a').forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='testimonials.html'))}
 })();

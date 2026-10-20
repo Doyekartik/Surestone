@@ -352,3 +352,10 @@ h1,h2,h3,.property-price,.detail-price{font-variant-numeric:lining-nums;font-fea
 .t-empty{color:var(--muted);font-size:16px;margin:0}
 @media(min-width:701px){.page-home .hero{height:auto;min-height:640px;padding:64px 0 48px}}
 .vote-btn svg{width:15px;height:15px;stroke-width:1.8}
+
+/* Reviews page */
+.page-testimonials main>*:not(#testimonials){display:none!important}
+.page-testimonials #testimonials{display:block!important;padding-top:70px;min-height:60vh}
+.page-testimonials #testimonials h2{font-size:clamp(40px,6vw,64px)}
+#testimonials .section-heading{display:flex;gap:14px;flex-wrap:wrap;justify-content:space-between}
+#allReviews{align-self:flex-end}
