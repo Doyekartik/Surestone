@@ -306,3 +306,9 @@ h1,h2,h3,.property-price,.detail-price{font-variant-numeric:lining-nums;font-fea
 .property-card-main .property-price-label{font-size:10.5px;padding:3px 9px}
 .property-card-main .property-location{font-size:13.5px}
 @media(max-width:700px){.property-card-main .property-title{font-size:20px}.property-card-main .property-price{font-size:17px}}
+/* Log out in the header */
+.header-logout{border:1px solid #e1d9cb;background:transparent;color:#4e483e;font:600 12px var(--sans);letter-spacing:.06em;text-transform:uppercase;padding:9px 12px;cursor:pointer;margin-left:8px}
+.header-logout:hover{border-color:var(--gold);background:#f7f2e9}
+.header-logout.hidden{display:none}
+@media(max-width:700px){.header-logout{padding:7px 9px;font-size:11px;margin-left:4px}}
+#googleSignOut{font-size:12.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;min-height:36px;padding:0 14px}
