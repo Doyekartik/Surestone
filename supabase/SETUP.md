@@ -1,4 +1,4 @@
-# Connect Sure Stone to Supabase
+# Connect The Astittva Estates to Supabase
 
 ## 1. Create the Supabase project
 

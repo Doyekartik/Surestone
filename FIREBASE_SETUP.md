@@ -5,7 +5,7 @@ The site now uses Firebase Authentication for Google sign-in. The Firebase proje
 1. In Firebase Console, open your project or create one, then add a **Web app** from Project settings → General.
 2. Copy the web app configuration values into `firebase-config.js` (`apiKey`, `authDomain`, `projectId`, and `appId`). These are public web app identifiers. Do not put a service account JSON or private key in this website.
 3. Open Authentication → Sign-in method and enable **Google**, **Email/Password**, and **Phone**. Google is needed for Google login; Email/Password powers both email login and account creation; Phone enables SMS verification.
-4. In Authentication → Settings → Authorized domains, add `localhost` for local development and the exact domain where Sure Stone will be hosted.
+4. In Authentication → Settings → Authorized domains, add `localhost` for local development and the exact domain where The Astittva Estates will be hosted.
 5. Serve the site over HTTP/HTTPS (for example, with VS Code Live Server). Opening an HTML file directly with `file://` is not a supported Firebase sign-in origin.
 6. Reload the site, open **Your account**, and choose **Continue with Google**. Desktop uses a popup; mobile uses Firebase's redirect flow.
 

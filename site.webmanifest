@@ -1,6 +1,11 @@
 {
+<<<<<<< HEAD
   "name": "Sure Stone Properties",
   "short_name": "Sure Stone",
+=======
+  "name": "The Astittva Estates",
+  "short_name": "Astittva Estates",
+>>>>>>> 6747e75 (Update The Astittva Estates website)
   "start_url": "/",
   "display": "standalone",
   "background_color": "#fbfaf8",
