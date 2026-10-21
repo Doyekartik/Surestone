@@ -401,3 +401,33 @@ h1,h2,h3,.property-price,.detail-price{font-variant-numeric:lining-nums;font-fea
 .about-cta .button-outline{color:#f4efe6;border-color:#f4efe680}
 @media(max-width:900px){.about-grid,.about-values-grid,.about-cities{grid-template-columns:minmax(0,1fr)}.about-hero h1{font-size:30px}.about-lead{font-size:16px}.about-cta{padding:24px}}
 #testimonials .section-heading>div:first-child{flex:1 1 auto}
+/* Find your home (client requirement form) */
+.page-findhome main>*:not(#findHome){display:none!important}
+.findhome-section{padding-top:70px;padding-bottom:80px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:56px;align-items:start}
+.findhome-intro{position:sticky;top:110px}
+.findhome-intro h1{font-family:var(--serif);font-weight:400;font-size:clamp(30px,4.4vw,48px);line-height:1.1;margin:14px 0 16px}
+.findhome-intro h1 em{color:var(--gold)}
+.findhome-lead{color:var(--muted);font-size:16px;line-height:1.6;margin:0;max-width:420px}
+.findhome-form,.findhome-done{background:var(--white);border:1px solid var(--line);padding:30px 32px;display:flex;flex-direction:column;gap:22px;box-shadow:var(--shadow)}
+.findhome-form fieldset{border:0;margin:0;padding:0}
+.findhome-form legend,.fh-field>span{display:block;font-size:14px;font-weight:600;color:var(--ink);margin-bottom:10px;letter-spacing:.02em}
+.fh-picks{display:flex;flex-wrap:wrap;gap:8px}
+.fh-pick{position:relative;cursor:pointer}
+.fh-pick input{position:absolute;opacity:0;pointer-events:none}
+.fh-pick span{display:inline-block;padding:9px 14px;border:1px solid var(--line);font-size:14px;color:var(--ink);background:var(--paper);transition:border-color .15s,background .15s,color .15s}
+.fh-pick:hover span{border-color:var(--gold-light)}
+.fh-pick input:checked+span{background:var(--ink);border-color:var(--ink);color:#fff}
+.fh-pick input:focus-visible+span{outline:2px solid var(--gold);outline-offset:2px}
+.fh-field input,.fh-field textarea{width:100%;border:0;border-bottom:1px solid var(--line);background:none;padding:10px 0;font:inherit;font-size:16px;color:var(--ink);outline:none;resize:vertical}
+.fh-field input:focus,.fh-field textarea:focus{border-bottom-color:var(--gold)}
+.fh-contact{display:flex;flex-direction:column;gap:22px;border-top:1px solid var(--line);padding-top:22px}
+.fh-send{width:100%;justify-content:center;height:52px;font-size:14px;letter-spacing:.08em}
+.fh-send:disabled{opacity:.7;cursor:wait}
+.fh-small{margin:-8px 0 0;text-align:center;color:var(--muted);font-size:14px}
+.findhome-done{align-items:flex-start}
+.findhome-done h2{font-family:var(--serif);font-weight:400;font-size:30px;margin:0}
+.findhome-done p{margin:0;color:var(--muted);font-size:16px;line-height:1.6}
+.findhome-done strong{color:var(--ink)}
+.fh-tick{width:44px;height:44px;display:grid;place-items:center;background:var(--ink);color:#fff;font-size:20px}
+@media (max-width:860px){.findhome-section{grid-template-columns:1fr;gap:28px;padding-top:40px}.findhome-intro{position:static}.findhome-form,.findhome-done{padding:22px 18px}}
+.findhome-done[hidden],.findhome-form[hidden]{display:none!important}
