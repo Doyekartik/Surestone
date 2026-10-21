@@ -462,3 +462,7 @@ video.ss-lb-media{background:#000;width:min(100%,1200px)}
 .video-play svg{width:22px;height:22px;fill:var(--ink);margin-left:3px}
 .video-tile:hover .video-play{transform:scale(1.08);background:#fff}
 .video-name{position:absolute;left:0;right:0;bottom:0;padding:22px 14px 10px;color:#fff;font-size:14px;text-align:left;background:linear-gradient(transparent,rgba(0,0,0,.6));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Schedule a visit: one clean box with the calendar inside */
+.contact-row.visit-row{display:flex;grid-template-columns:none}
+.visit-btn{flex:1;width:100%;display:inline-flex;align-items:center;justify-content:center;gap:10px}
+.visit-btn svg{width:18px;height:18px;flex:none;fill:none;stroke:var(--gold);stroke-width:1.6;stroke-linecap:round}
