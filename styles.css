@@ -500,3 +500,5 @@ video.ss-lb-media{background:#000;width:min(100%,1200px)}
   .neighbourhood-meta small{font-size:14px}
   .sell-content h2{font-size:30px}
 }
+/* Remove the decorative rule that can read as a dash before the hero label. */
+.hero-eyebrow::before{display:none}
