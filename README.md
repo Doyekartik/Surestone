@@ -1,4 +1,4 @@
-# Sure Stone Properties
+# The Astittva Estates
 
 A responsive real estate marketplace concept built with plain HTML, CSS and JavaScript. The site has dedicated pages for the homepage, property search, property details, Raipur neighbourhoods, selling a property, the account centre, and the company promise. It includes property search and filters, favourites, a local account centre, visit requests, neighbourhood browsing, an OpenStreetMap view, and room-by-room immersive tour placeholders.
 

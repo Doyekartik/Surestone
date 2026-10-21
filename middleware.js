@@ -54,9 +54,9 @@ async function propertyPage(req, id) {
   const lease = p.deal === 'lease';
   const config = String(p.configs || '').trim();
   const size = p.size_from ? `${Number(p.size_from).toLocaleString('en-IN')}${p.size_to && p.size_to !== p.size_from ? '–' + Number(p.size_to).toLocaleString('en-IN') : ''} sq ft` : '';
-  const title = `${p.name}${config ? ` – ${/bhk/i.test(config) ? config : config + ' BHK'}` : ''}${loc ? ` in ${loc.split(',')[0]}` : ''} | Sure Stone Properties`;
+  const title = `${p.name}${config ? ` – ${/bhk/i.test(config) ? config : config + ' BHK'}` : ''}${loc ? ` in ${loc.split(',')[0]}` : ''} | The Astittva Estates`;
   const bits = [lease ? 'For lease' : price ? `From ${price}` : '', config && (/bhk/i.test(config) ? config : config + ' BHK'), size, loc, p.developer ? `by ${p.developer}` : '', p.status].filter(Boolean);
-  let desc = `${p.name}: ${bits.join(' · ')}.${p.highlights ? ' ' + String(p.highlights).trim() : ''} Photos, floor plans and site visits with Sure Stone.`;
+  let desc = `${p.name}: ${bits.join(' · ')}.${p.highlights ? ' ' + String(p.highlights).trim() : ''} Photos, floor plans and site visits with The Astittva Estates.`;
   if (desc.length > 160) desc = desc.slice(0, 157).replace(/\s+\S*$/, '') + '…';
   const canon = `${SITE}/property.html?id=${encodeURIComponent(slugOf(p))}`;
   const image = photoUrl((p.photos || [])[0]) || `${SITE}/assets/og-image.jpg`;
@@ -72,7 +72,7 @@ async function propertyPage(req, id) {
   html = html.replace(/<meta name="description" content="[^"]*"\s*\/>/, `<meta name="description" content="${esc(desc)}" />`);
   html = html.replace('<!-- /SEO -->', [
     `<link rel="canonical" href="${esc(canon)}" />`,
-    '<meta property="og:type" content="website" />', '<meta property="og:site_name" content="Sure Stone Properties" />', '<meta property="og:locale" content="en_IN" />',
+    '<meta property="og:type" content="website" />', '<meta property="og:site_name" content="The Astittva Estates" />', '<meta property="og:locale" content="en_IN" />',
     `<meta property="og:title" content="${esc(title)}" />`, `<meta property="og:description" content="${esc(desc)}" />`, `<meta property="og:url" content="${esc(canon)}" />`,
     `<meta property="og:image" content="${esc(image)}" />`, `<meta property="og:image:alt" content="${esc(p.name)}" />`,
     '<meta name="twitter:card" content="summary_large_image" />', `<meta name="twitter:title" content="${esc(title)}" />`, `<meta name="twitter:description" content="${esc(desc)}" />`, `<meta name="twitter:image" content="${esc(image)}" />`,
