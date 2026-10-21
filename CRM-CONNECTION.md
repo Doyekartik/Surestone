@@ -1,4 +1,4 @@
-# The Astittva Estates ↔ EstateDesk CRM
+# Surestone ↔ EstateDesk CRM
 
 What changed:
 - Homes on the site now come from the CRM's Projects. Add, edit or hide a project in the CRM and the site updates within about a minute. Sold-out projects are left out.
