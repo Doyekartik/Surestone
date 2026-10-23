@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /seo-template.html
 
 Sitemap: https://www.theastittva.com/sitemap.xml
