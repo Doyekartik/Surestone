@@ -153,6 +153,7 @@ function initHindiTranslation(){
   button.addEventListener('click',()=>setLanguage(!hindi));let savedLanguage='en';try{savedLanguage=localStorage.getItem('tae-language')||'en'}catch{}setLanguage(savedLanguage==='hi');
   let translationFrame=0;window.applySiteLanguage=()=>translate(document.body);const observer=new MutationObserver(()=>{if(translationFrame)return;translationFrame=requestAnimationFrame(()=>{translationFrame=0;translate(document.body)})});observer.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['aria-label','title','placeholder','alt']});
 }
+initHindiTranslation();
 
 function initHeroWordCycle(){const windowEl=$('.hero-word-window'),wordEl=$('#heroWord');if(!windowEl||!wordEl)return;const englishWords=['home','place','space','everything'],hindiWords=['थोड़ी और जगह','थोड़ी और रोशनी','थोड़ी और शांति','थोड़ी और खुशहाली'];let words=document.documentElement.lang==='hi'?hindiWords:englishWords,index=0,busy=false;
   const calm=matchMedia('(prefers-reduced-motion: reduce)').matches;
