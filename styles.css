@@ -554,3 +554,24 @@ video.ss-lb-media{background:#000;width:min(100%,1200px)}
 .footer-column{align-content:start}
 @media(min-width:801px){.site-footer .footer-main{grid-template-columns:1.1fr 1fr 1fr 1fr;align-items:start}}
 @media(max-width:800px){.site-footer .footer-main{grid-template-columns:1fr 1fr;align-items:start}.site-footer .footer-main .footer-brand{grid-column:1/-1}}
+
+/* ---------- Phone fixes ---------- */
+dialog:focus{outline:none}
+.load-more-wrap .hidden+p{display:none}
+@media(max-width:700px){
+  .header-logout{display:none!important}
+  .main-nav.mobile-open{box-shadow:0 18px 30px #17140f26;border-bottom:1px solid var(--line)}
+  .main-nav.mobile-open a{padding:6px 0}
+  .detail-topbar{flex-direction:column;align-items:flex-start;gap:2px}
+  .property-detail-gallery{grid-template-rows:auto 230px 92px;background:transparent;overflow:visible}
+  .property-detail-gallery .gallery-feature{grid-row:2}
+  .property-detail-gallery .gallery-actions{position:static;grid-row:1;grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+  .property-detail-gallery .gallery-actions>*{flex:1}
+  .property-detail-gallery .gallery-actions button{width:100%;box-shadow:none;border:1px solid #e1d9cb;padding:9px 6px;font-size:13px;white-space:nowrap}
+  .property-detail-gallery .gallery-actions .share-wrap{display:flex}
+  .property-detail-gallery .gallery-actions .vote-btn{border:1px solid #e1d9cb!important;justify-content:center}
+  .footer-main{grid-template-columns:1fr 1fr;gap:26px 18px}
+  .footer-main .footer-popular{order:5;grid-column:1/-1;grid-template-columns:1fr 1fr;column-gap:18px}
+  .footer-main .footer-popular>span{grid-column:1/-1}
+  .footer-bottom{flex-direction:column;align-items:flex-start}
+}
