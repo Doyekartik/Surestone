@@ -575,28 +575,3 @@ dialog:focus{outline:none}
   .footer-main .footer-popular>span{grid-column:1/-1}
   .footer-bottom{flex-direction:column;align-items:flex-start}
 }
-/* Area price history and language control */
-.neighbourhood-card-wrap{min-width:0}
-.area-trend-link{display:flex;align-items:center;justify-content:space-between;width:100%;padding:12px 14px;background:#fff;border:1px solid var(--line);color:#66543a;text-align:left;font-size:14px;cursor:pointer}
-.area-trend-link:hover{background:#f4f0e9}
-.area-trend-dialog{width:min(560px,calc(100vw - 28px))}
-.area-trend-body{padding:22px 28px 28px}
-.area-trend-note{font-size:14px;line-height:1.65;color:#777168}
-.area-trend-table-wrap{overflow-x:auto}
-.area-trend-table{width:100%;border-collapse:collapse;margin:18px 0}
-.area-trend-table th,.area-trend-table td{padding:11px 12px;border-bottom:1px solid var(--line);text-align:left;font-size:14px}
-.area-trend-table thead th{color:#81796e;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
-.area-trend-table td{color:#716d66}
-.area-trend-body .text-link{display:inline-block;margin-top:8px}
-.language-toggle{border:1px solid var(--line);background:transparent;color:#5d5346;padding:7px 10px;min-height:36px;cursor:pointer;font-size:14px}
-.language-toggle:hover{border-color:var(--gold);color:#8d6a3b}
-.language-toggle:disabled{opacity:.6;cursor:wait}
-@media(max-width:720px){.area-trend-body{padding:18px}.area-trend-dialog .dialog-shell{max-height:88vh;overflow:auto}.area-trend-link{padding:11px 12px}.language-toggle{padding:6px 8px}}
-/* Keep the Hindi hero slogan compact and on intentional lines. */
-html[lang="hi"] .page-home .hero h1{font-size:clamp(52px,6.5vw,82px);line-height:1.08}
-html[lang="hi"] .page-home .hero-rotating-line{display:flex;align-items:baseline;gap:0;max-width:100%;white-space:normal;font-size:clamp(34px,4.4vw,58px);line-height:1.12}
-html[lang="hi"] .page-home .hero-word-for{display:none}
-html[lang="hi"] .page-home .hero-word-window{flex:0 0 auto}
-html[lang="hi"] .page-home .hero-rotating-line em{margin-left:0;white-space:nowrap}
-@media(max-width:560px){html[lang="hi"] .page-home .hero h1{font-size:clamp(44px,11.6vw,58px);line-height:1.08}html[lang="hi"] .page-home .hero-rotating-line{font-size:clamp(25px,7.2vw,36px);gap:0}}
-
