@@ -1,3 +1,9 @@
+/* CRM project → its Hindi copy (project.hi, made by the CRM) as English→Hindi pairs for the language switch (language.js). */
+function siteHindiProject(p,desc){const h=p&&p.hi;if(!h||typeof h!=='object')return;const pairs=[];const list=v=>String(v||'').split(/[,•\n]+/).map(x=>x.trim()).filter(x=>x&&!/^others?$/i.test(x));
+  ['location','type','configs','status','possession','towers'].forEach(f=>{if(p[f]&&h[f])pairs.push([String(p[f]),String(h[f])])});
+  ['location','amenities','highlights'].forEach(f=>{const a=list(p[f]),b=list(h[f]);if(a.length&&a.length===b.length)a.forEach((x,i)=>pairs.push([x,b[i]]))});
+  if(desc){const hl=list(h.highlights).join(', '),loc=h.location||'';pairs.push([desc,[hl?hl+'।':'',p.name+(p.developer?' ('+(h.developer||p.developer)+')':'')+(loc?', '+loc+' में।':'।')].filter(Boolean).join(' ')])}
+  if(window.siteHindiAdd)window.siteHindiAdd(pairs);else(window.__siteHindiQueue=window.__siteHindiQueue||[]).push(...pairs)}
 /* "Pool,Park,Others" → "Pool, Park" */
 function listText(v){return String(v||'').split(',').map(x=>x.trim()).filter(x=>x&&!/^others?$/i.test(x)).join(', ')}
 const photo=(id,w=960)=>/^(https?:\/\/|data:image\/)/i.test(id||'')?id:`https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=84`;
@@ -29,6 +35,7 @@ function crmProjectToHome(p){
   const status=p.status||'';const extra=[];
   if(p.developer)extra.push(['Developer',p.developer]);if(p.possession)extra.push(['Possession',p.possession]);if(p.rera_no)extra.push(['RERA number',p.rera_no]);if(p.banks)extra.push(['Home loans from',listText(p.banks)]);
   const desc=[p.highlights?listText(p.highlights).replace(/[.!\s]*$/,'.'):'',`${p.name}${p.developer?' by '+p.developer:''}${loc?' in '+loc:''}.`].filter(Boolean).join(' ');
+  try{siteHindiProject(p,desc)}catch(e){}
   return{id:slug,crm:true,crmName:p.name,price,displayPrice:deal==='lease'?'For lease':price?currency(price)+' onwards':'Price on request',label:deal==='lease'?'For lease':deal==='both'?'Sale or lease':(status||'New project'),deal,forLease:deal!=='sale',title:p.name,type,location,neighbourhood,city,developer:String(p.developer||'').trim(),bedsList:beds,
     beds:beds.length?Math.max(...beds):0,bedsLabel:p.configs||'',baths:0,area:st||sf,areaFrom:sf||st,areaLabel:sf?`${sf.toLocaleString('en-IN')}${st&&st!==sf?'–'+st.toLocaleString('en-IN'):''} sq. ft.`:'Size on request',
     image:photos[0]||NO_PHOTO,image2:photos[1]||'',image3:photos[2]||'',gallery:photos,videos:(Array.isArray(p.videos)?p.videos:[]).filter(v=>v&&typeof v.url==='string'&&/^https:\/\//.test(v.url)).slice(0,5).map(v=>({url:v.url,name:String(v.name||'')})),verified:Boolean(p.rera_no),tour:false,tourUrl:'',moveIn:status==='Ready to move',availability:status||'',
